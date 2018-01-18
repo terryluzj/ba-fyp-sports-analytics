@@ -261,12 +261,14 @@ class NetKeibaCrawler(scrapy.Spider):
     def parse_jockey_profile(self, response):
         # Get profile information
         profile_info = self.get_profile_table(response)
-        print(profile_info)
+        for row_element in response.meta['row_data']:
+            print([response.meta['jockey_name']] + list(response['basic_info'].values()) + list(profile_info.values()) + row_element)
 
     def parse_trainer_profile(self, response):
         # Get profile information
         profile_info = self.get_profile_table(response)
-        print(profile_info)
+        for row_element in response.meta['row_data']:
+            print([response.meta['trainer_name']] + list(response['basic_info'].values()) + list(profile_info.values()) + row_element)
 
     @staticmethod
     def get_table_rows(response):
