@@ -253,7 +253,7 @@ class NetKeibaCrawler(scrapy.Spider):
         profile_link = 'http://db.netkeiba.com/trainer/profile/%s/' % response.url.split('/')[-2]
         new_meta = {
             'row_data': row_data,
-            'jockey_name': trainer_name,
+            'trainer_name': trainer_name,
             'basic_info': basic_info,
         }
         yield Request(profile_link, callback=self.parse_trainer_profile, meta=new_meta)
