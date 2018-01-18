@@ -4,7 +4,7 @@ from scrapy.utils.project import get_project_settings
 
 class ProfileCrawlerProcess(scrapy.crawler.CrawlerProcess):
 
-    CRAWLER_NAME = 'core'
+    CRAWLER_NAME = 'netkeiba'
 
     def __init__(self):
         super(ProfileCrawlerProcess, self).__init__(settings=get_project_settings())
