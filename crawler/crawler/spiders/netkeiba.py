@@ -21,7 +21,8 @@ class NetKeibaCrawler(scrapy.Spider):
 
         # Limit the concurrent request per domain and moderate the server load
         'CONCURRENT_REQUESTS': 64,
-        'DOWNLOAD_DELAY': 1,
+        'CONCURRENT_REQUESTS_PER_DOMAIN': 8,
+        'DOWNLOAD_DELAY': 0.5,
     }
 
     DOMAIN_URL = ['db.netkeiba.com']
@@ -59,14 +60,16 @@ class NetKeibaCrawler(scrapy.Spider):
 
     # Start from the earliest available date
     with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')) + '/status.log', 'r') as f:
-        START_DATE = f.readline() if f.readline() != '' else '06-01-2000'
+        START_DATE = f.readline()
+        START_DATE = START_DATE if START_DATE != '' else '2000-01-06'
         f.close()
 
     def __init__(self, *args, **kwargs):
         # Get faculty link for each university
         super(NetKeibaCrawler, self).__init__(*args, **kwargs)
         self.allowed_domains = list(NetKeibaCrawler.DOMAIN_URL)
-        start_date = datetime.datetime.strptime(NetKeibaCrawler.START_DATE, '%d-%m-%Y').date()
+        start_date = datetime.datetime.strptime(NetKeibaCrawler.START_DATE, '%Y-%m-%d').date()
+        self.logger.info('Start crawling from date %s' % start_date)
         self.dates = []
 
         # National events are only held on weekend and hence filter out irrelevant date
