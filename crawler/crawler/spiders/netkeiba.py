@@ -2,6 +2,7 @@ import datetime
 import scrapy
 from lxml import html
 from scrapy import Request
+from crawler.crawler.items import RaceRecord, HorseRecord, IndividualRecord, TrainerProfile, JockeyProfile
 
 
 class NetKeibaCrawler(scrapy.Spider):
@@ -14,7 +15,7 @@ class NetKeibaCrawler(scrapy.Spider):
         # Override custom settings preset by scrapy
         # Take a depth-first search algorithm by setting a negative priority or positive otherwise
         'DEPTH_LIMIT': 4,
-        'DEPTH_PRIORITY': 2,
+        'DEPTH_PRIORITY': -2,
         'DEPTH_STATS_VERBOSE': True,
 
         # Limit the concurrent request per domain and moderate the server load
@@ -24,6 +25,46 @@ class NetKeibaCrawler(scrapy.Spider):
     }
 
     DOMAIN_URL = ['db.netkeiba.com']
+    RACE_COLUMNS = [
+        'date', 'place', 'race', 'title', 'type', 'track', 'distance', 'weather', 'condition', 'time',
+        'finishing_position', 'bracket', 'horse_number', 'horse', 'sex_age', 'jockey_weight', 'jockey',
+        'run_time', 'margin', 'corner_position', 'run_time_last_600', 'win_odds', 'win_fav', 'horse_weight',
+        'trainer', 'breeder', 'prize'
+    ]
+    HORSE_COLUMNS = {
+        '生年月日': 'date_of_birth',
+        '調教師': 'trainer', '馬主': 'owner', '生産者': 'breeder',
+        '産地': 'place_of_birth', 'セリ取引価格': 'transaction_price',
+        '獲得賞金': 'prize_obtained', '通算成績': 'race_record',
+        '主な勝鞍': "highlight_race", '近親馬': 'relatives'
+    }
+    INDIVIDUAL_COLUMNS = [
+        'individual_type', 'name', 'year', 'rank', 'first', 'second', 'third', 'out',
+        'races_major', 'wins_major', 'races_special', 'wins_special',
+        'races_flat', 'wins_flat', 'races_grass', 'wins_grass', 'races_dirt', 'wins_dirt',
+        'wins_percent', 'wins_percent_2nd', 'wins_percent_3rd', 'prize_obtained', 'representative_horse'
+    ]
+    TRAINER_COLUMNS = {
+        '出身地': 'place_of_birth',
+        '初出走日': 'first_run_date',
+        '初出走馬': 'first_run_horse',
+        '初勝利日': 'first_win_date',
+        '初勝利馬': 'first_win_horse'
+    }
+    JOCKEY_COLUMNS = {
+        '出身地': 'place_of_birth',
+        '血液型': 'blood_type',
+        '身長': 'height',
+        '体重': 'weight',
+        '平地初騎乗日': 'first_flat_run_date',
+        '平地初騎乗馬': 'first_flat_run_horse',
+        '平地初勝利日': 'first_flat_win_date',
+        '平地初勝利馬': 'first_flat_win_horse',
+        '障害初騎乗日': 'first_obs_run_date',
+        '障害初騎乗馬': 'first_obs_run_horse',
+        '障害初勝利日': 'first_obs_win_date',
+        '障害初勝利馬': 'first_obs_win_horse'
+    }
 
     # Start from the earliest available date
     # TODO: Scan through obtained data and update start date accordingly
@@ -137,8 +178,15 @@ class NetKeibaCrawler(scrapy.Spider):
             row_element[-3] = row_element[-4] + row_element[-3]
             del row_element[-4]
             curr_record = {
+                # Example:
+                # ['2000-01-08', '中山', '1R', '4歳未勝利', 'ダ', '右', '1200m', '曇', '良', '10:00',
+                # '1', '6', '8', 'コスモイーグル', '牡4', '54', '村田一誠', '1:13.9', '-', '4-3', '38.9', '1.7',
+                # '1', '458(-2)', '[東]稲葉隆一', '岡田美佐子', '510.0']
                 'record': list(response.meta['custom'].values()) + basic_info + row_element
             }
+
+            # Yield item of race record
+            race_record = RaceRecord(dict(zip(NetKeibaCrawler.RACE_COLUMNS, curr_record['record'])))
 
             # Yield next-level request for horse, jockey, owner and trainer
             for link in sorted(link_element):
@@ -178,13 +226,16 @@ class NetKeibaCrawler(scrapy.Spider):
         profile_read = list(map(lambda text: html.fromstring(text), profile))
         profile_zipped = list(map(lambda content: content.xpath('//text()[normalize-space(.)]'), profile_read))
         profile_zipped = list(map(lambda x: [x[0], ' '.join(x[1:]).strip()], profile_zipped))
-        profile_dict = {item[0]: item[1] for item in profile_zipped}
+        profile_dict = {self.horse_record_translate(item[0]): item[1] for item in profile_zipped}
         profile_dict.update(info_dict)
+
+        # Yield item of horse record
+        horse_record = HorseRecord(profile_dict)
 
         # Extract breeder information
         breeder_link = response.xpath('//a[@href[contains(., "breeder/")]]/@href').extract_first()
         breeder_meta = response.meta.copy()
-        breeder_meta['breeder_name'] = profile_dict[u'生産者']
+        breeder_meta['breeder_name'] = profile_dict[u'breeder']
         if breeder_link is not None:
             yield response.follow(self.format_link(breeder_link, 'result'),
                                   callback=self.parse_breeder, meta=breeder_meta)
@@ -207,14 +258,18 @@ class NetKeibaCrawler(scrapy.Spider):
         row_data = self.get_table_rows(response)[1][2:]
         breeder_name = response.meta['breeder_name']
         for row_element in row_data:
-            print([breeder_name] + row_element)
+            # Yield item of breeder record
+            breeder_record = dict(zip(NetKeibaCrawler.INDIVIDUAL_COLUMNS, [u'生産者', breeder_name] + row_element))
+            breeder_record = IndividualRecord(breeder_record)
 
     def parse_owner(self, response):
         # Get table content and basic information
         row_data = self.get_table_rows(response)[1][2:]
         owner_name = response.meta['record'][-2]
         for row_element in row_data:
-            print([owner_name] + row_element)
+            # Yield item of owner record
+            owner_record = dict(zip(NetKeibaCrawler.INDIVIDUAL_COLUMNS, [u'馬主', owner_name] + row_element))
+            owner_record = IndividualRecord(owner_record)
 
     def parse_jockey(self, response):
         # Get table content and basic information
@@ -261,14 +316,38 @@ class NetKeibaCrawler(scrapy.Spider):
     def parse_jockey_profile(self, response):
         # Get profile information
         profile_info = self.get_profile_table(response)
+        profile_info = {NetKeibaCrawler.JOCKEY_COLUMNS[key]: value for key, value in profile_info.items()}
+        profile_info.update(
+            {
+                'jockey_name': response.meta['jockey_name'],
+                'date_of_birth': response.meta['basic_info']
+            }
+        )
+
+        # Yield item of jockey record and profile
+        jockey_profile = JockeyProfile(profile_info)
         for row_element in response.meta['row_data']:
-            print([response.meta['jockey_name'], response.meta['basic_info']] + list(profile_info.values()) + row_element)
+            jockey_record = dict(zip(NetKeibaCrawler.INDIVIDUAL_COLUMNS,
+                                     [u'騎手', response.meta['jockey_name']] + row_element))
+            jockey_record = IndividualRecord(jockey_record)
 
     def parse_trainer_profile(self, response):
         # Get profile information
         profile_info = self.get_profile_table(response)
+        profile_info = {NetKeibaCrawler.TRAINER_COLUMNS[key]: value for key, value in profile_info.items()}
+        profile_info.update(
+            {
+                'trainer_name': response.meta['trainer_name'],
+                'date_of_birth': response.meta['basic_info']
+            }
+        )
+
+        # Yield item of trainer record and profile
+        trainer_profile = TrainerProfile(profile_info)
         for row_element in response.meta['row_data']:
-            print([response.meta['trainer_name'], response.meta['basic_info']] + list(profile_info.values()) + row_element)
+            trainer_record = dict(zip(NetKeibaCrawler.INDIVIDUAL_COLUMNS,
+                                      [u'調教師', response.meta['trainer_name']] + row_element))
+            trainer_record = IndividualRecord(trainer_record)
 
     @staticmethod
     def get_table_rows(response):
@@ -291,3 +370,7 @@ class NetKeibaCrawler(scrapy.Spider):
         profile_read = list(map(lambda text: html.fromstring(text), profile))
         profile_zipped = list(map(lambda content: content.xpath("//text()[normalize-space(.)]"), profile_read))
         return {item[0]: item[1] for item in profile_zipped}
+
+    @staticmethod
+    def horse_record_translate(original_string):
+        return NetKeibaCrawler.HORSE_COLUMNS[original_string]
