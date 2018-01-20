@@ -1,4 +1,5 @@
 import datetime
+import os
 import scrapy
 from lxml import html
 from scrapy import Request
@@ -58,8 +59,9 @@ class NetKeibaCrawler(scrapy.Spider):
     }
 
     # Start from the earliest available date
-    # TODO: Scan through obtained data and update start date accordingly
-    START_DATE = '06/01/2000'
+    with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')) + '/status.log', 'r') as f:
+        START_DATE = f.readline() if f.readline() != '' else '06/01/2000'
+        f.close()
 
     def __init__(self, *args, **kwargs):
         # Get faculty link for each university
@@ -84,6 +86,10 @@ class NetKeibaCrawler(scrapy.Spider):
 
     def parse(self, response):
         # Parse page content at the top level
+        self.logger.info('Parsing at race list %s' % response.url)
+        with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')) + '/status.log', 'w') as f:
+            f.write(response.meta['date'])
+            f.close()
 
         # Define XPath to extract information from the page
         top_path = '//dl[@class[contains(., "race_top_hold_list")]]'
