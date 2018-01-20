@@ -11,7 +11,7 @@ from scrapy.loader.processors import TakeFirst
 
 class RaceRecord(Item):
     # Basic Information
-    date = Field(output_processor=TakeFirst())
+    run_date = Field(output_processor=TakeFirst())
     place = Field(output_processor=TakeFirst())
     race = Field(output_processor=TakeFirst())
     title = Field(output_processor=TakeFirst())
@@ -41,9 +41,13 @@ class RaceRecord(Item):
     breeder = Field(output_processor=TakeFirst())
     prize = Field(output_processor=TakeFirst())
 
+    def __repr__(self):
+        return repr({'title': self['title']})
+
 
 class HorseRecord(Item):
     # Detailed Information
+    horse_name = Field(output_processor=TakeFirst())
     date_of_birth = Field(output_processor=TakeFirst())
     trainer = Field(output_processor=TakeFirst())
     owner = Field(output_processor=TakeFirst())
@@ -59,6 +63,9 @@ class HorseRecord(Item):
     status = Field(output_processor=TakeFirst())
     gender = Field(output_processor=TakeFirst())
     breed = Field(output_processor=TakeFirst())
+
+    def __repr__(self):
+        return repr({'horse_name': self['horse_name']})
 
 
 class IndividualRecord(Item):
@@ -87,6 +94,9 @@ class IndividualRecord(Item):
     prize_obtained = Field(output_processor=TakeFirst())
     representative_horse = Field(output_processor=TakeFirst())
 
+    def __repr__(self):
+        return repr({'name': self['name'], 'year': self['year']})
+
 
 class TrainerProfile(Item):
     trainer_name = Field(output_processor=TakeFirst())
@@ -96,6 +106,9 @@ class TrainerProfile(Item):
     first_run_horse = Field(output_processor=TakeFirst())
     first_win_date = Field(output_processor=TakeFirst())
     first_win_horse = Field(output_processor=TakeFirst())
+
+    def __repr__(self):
+        return repr({'trainer_name': self['trainer_name']})
 
 
 class JockeyProfile(Item):
@@ -113,3 +126,6 @@ class JockeyProfile(Item):
     first_obs_run_horse = Field(output_processor=TakeFirst())
     first_obs_win_date = Field(output_processor=TakeFirst())
     first_obs_win_horse = Field(output_processor=TakeFirst())
+
+    def __repr__(self):
+        return repr({'jockey_name': self['jockey_name']})

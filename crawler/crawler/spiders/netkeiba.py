@@ -19,14 +19,14 @@ class NetKeibaCrawler(scrapy.Spider):
         'DEPTH_STATS_VERBOSE': True,
 
         # Limit the concurrent request per domain and moderate the server load
-        'CONCURRENT_REQUESTS': 32,
+        'CONCURRENT_REQUESTS': 64,
         'CONCURRENT_REQUESTS_PER_DOMAIN': 8,
         'DOWNLOAD_DELAY': 1,
     }
 
     DOMAIN_URL = ['db.netkeiba.com']
     RACE_COLUMNS = [
-        'date', 'place', 'race', 'title', 'type', 'track', 'distance', 'weather', 'condition', 'time',
+        'run_date', 'place', 'race', 'title', 'type', 'track', 'distance', 'weather', 'condition', 'time',
         'finishing_position', 'bracket', 'horse_number', 'horse', 'sex_age', 'jockey_weight', 'jockey',
         'run_time', 'margin', 'corner_position', 'run_time_last_600', 'win_odds', 'win_fav', 'horse_weight',
         'trainer', 'breeder', 'prize'
@@ -46,24 +46,15 @@ class NetKeibaCrawler(scrapy.Spider):
     ]
     TRAINER_COLUMNS = {
         '出身地': 'place_of_birth',
-        '初出走日': 'first_run_date',
-        '初出走馬': 'first_run_horse',
-        '初勝利日': 'first_win_date',
-        '初勝利馬': 'first_win_horse'
+        '初出走日': 'first_run_date', '初出走馬': 'first_run_horse',
+        '初勝利日': 'first_win_date', '初勝利馬': 'first_win_horse'
     }
     JOCKEY_COLUMNS = {
-        '出身地': 'place_of_birth',
-        '血液型': 'blood_type',
-        '身長': 'height',
-        '体重': 'weight',
-        '平地初騎乗日': 'first_flat_run_date',
-        '平地初騎乗馬': 'first_flat_run_horse',
-        '平地初勝利日': 'first_flat_win_date',
-        '平地初勝利馬': 'first_flat_win_horse',
-        '障害初騎乗日': 'first_obs_run_date',
-        '障害初騎乗馬': 'first_obs_run_horse',
-        '障害初勝利日': 'first_obs_win_date',
-        '障害初勝利馬': 'first_obs_win_horse'
+        '出身地': 'place_of_birth', '血液型': 'blood_type', '身長': 'height', '体重': 'weight',
+        '平地初騎乗日': 'first_flat_run_date', '平地初騎乗馬': 'first_flat_run_horse',
+        '平地初勝利日': 'first_flat_win_date', '平地初勝利馬': 'first_flat_win_horse',
+        '障害初騎乗日': 'first_obs_run_date', '障害初騎乗馬': 'first_obs_run_horse',
+        '障害初勝利日': 'first_obs_win_date', '障害初勝利馬': 'first_obs_win_horse'
     }
 
     # Start from the earliest available date
@@ -187,6 +178,7 @@ class NetKeibaCrawler(scrapy.Spider):
 
             # Yield item of race record
             race_record = RaceRecord(dict(zip(NetKeibaCrawler.RACE_COLUMNS, curr_record['record'])))
+            yield race_record
 
             # Yield next-level request for horse, jockey, owner and trainer
             for link in sorted(link_element):
@@ -216,6 +208,7 @@ class NetKeibaCrawler(scrapy.Spider):
         elif len(basic_info) == 1:
             basic_info = ['-'] + basic_info + ['-']
         info_dict = {
+            'horse_name': response.meta['record'][13],
             'status': basic_info[0],
             'gender': basic_info[1],
             'breed': basic_info[2]
@@ -231,6 +224,7 @@ class NetKeibaCrawler(scrapy.Spider):
 
         # Yield item of horse record
         horse_record = HorseRecord(profile_dict)
+        yield horse_record
 
         # Extract breeder information
         breeder_link = response.xpath('//a[@href[contains(., "breeder/")]]/@href').extract_first()
@@ -261,6 +255,7 @@ class NetKeibaCrawler(scrapy.Spider):
             # Yield item of breeder record
             breeder_record = dict(zip(NetKeibaCrawler.INDIVIDUAL_COLUMNS, [u'生産者', breeder_name] + row_element))
             breeder_record = IndividualRecord(breeder_record)
+            yield breeder_record
 
     def parse_owner(self, response):
         # Get table content and basic information
@@ -270,6 +265,7 @@ class NetKeibaCrawler(scrapy.Spider):
             # Yield item of owner record
             owner_record = dict(zip(NetKeibaCrawler.INDIVIDUAL_COLUMNS, [u'馬主', owner_name] + row_element))
             owner_record = IndividualRecord(owner_record)
+            yield owner_record
 
     def parse_jockey(self, response):
         # Get table content and basic information
@@ -326,10 +322,12 @@ class NetKeibaCrawler(scrapy.Spider):
 
         # Yield item of jockey record and profile
         jockey_profile = JockeyProfile(profile_info)
+        yield jockey_profile
         for row_element in response.meta['row_data']:
             jockey_record = dict(zip(NetKeibaCrawler.INDIVIDUAL_COLUMNS,
                                      [u'騎手', response.meta['jockey_name']] + row_element))
             jockey_record = IndividualRecord(jockey_record)
+            yield jockey_record
 
     def parse_trainer_profile(self, response):
         # Get profile information
@@ -344,10 +342,12 @@ class NetKeibaCrawler(scrapy.Spider):
 
         # Yield item of trainer record and profile
         trainer_profile = TrainerProfile(profile_info)
+        yield trainer_profile
         for row_element in response.meta['row_data']:
             trainer_record = dict(zip(NetKeibaCrawler.INDIVIDUAL_COLUMNS,
                                       [u'調教師', response.meta['trainer_name']] + row_element))
             trainer_record = IndividualRecord(trainer_record)
+            yield trainer_record
 
     @staticmethod
     def get_table_rows(response):
