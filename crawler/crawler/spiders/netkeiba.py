@@ -21,9 +21,11 @@ class NetKeibaCrawler(scrapy.Spider):
 
         # Limit the concurrent request per domain and moderate the server load
         'CONCURRENT_REQUESTS': 64,
-        'CONCURRENT_REQUESTS_PER_DOMAIN': 8,
+        'CONCURRENT_REQUESTS_PER_DOMAIN': 32,
         'DOWNLOAD_DELAY': 1,
     }
+
+    # TODO: Create a database to store links produced during crawling, with status specifying the link is parsed
 
     DOMAIN_URL = ['db.netkeiba.com']
     RACE_COLUMNS = [
