@@ -22,7 +22,7 @@ class NetKeibaCrawler(scrapy.Spider):
         # Limit the concurrent request per domain and moderate the server load
         'CONCURRENT_REQUESTS': 64,
         'CONCURRENT_REQUESTS_PER_DOMAIN': 8,
-        'DOWNLOAD_DELAY': 0.5,
+        'DOWNLOAD_DELAY': 1,
     }
 
     DOMAIN_URL = ['db.netkeiba.com']
@@ -90,9 +90,6 @@ class NetKeibaCrawler(scrapy.Spider):
     def parse(self, response):
         # Parse page content at the top level
         self.logger.info('Parsing at race list %s' % response.url)
-        with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')) + '/status.log', 'w') as f:
-            f.write(response.meta['date'])
-            f.close()
 
         # Define XPath to extract information from the page
         top_path = '//dl[@class[contains(., "race_top_hold_list")]]'
@@ -133,6 +130,7 @@ class NetKeibaCrawler(scrapy.Spider):
             # Initiate new meta data
             meta_list = key.split(' ')
             target_meta = {
+                'date': response.meta['date'],
                 'custom': {
                     'date': meta_list[0],
                     'place': meta_list[1],
@@ -145,6 +143,9 @@ class NetKeibaCrawler(scrapy.Spider):
     def parse_race(self, response):
         # Get basic information of the current race record page
         self.logger.info('Parsing race %s' % response.url)
+        with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')) + '/status.log', 'w') as f:
+            f.write(response.meta['date'])
+            f.close()
 
         info_content = response.xpath('//diary_snap_cut/span/text()[normalize-space(.)]').extract_first().split('/')
         info_content = list(map(lambda text: text.strip(), info_content))
