@@ -21,7 +21,6 @@ class NetKeibaCrawler(scrapy.Spider):
 
         # Limit the concurrent request per domain and moderate the server load
         'CONCURRENT_REQUESTS': 64,
-        'CONCURRENT_REQUESTS_PER_DOMAIN': 8,
         'DOWNLOAD_DELAY': 1,
     }
 
@@ -78,7 +77,8 @@ class NetKeibaCrawler(scrapy.Spider):
 
     def start_requests(self):
         # Add indexing for debugging
-        for date in self.dates[:1]:
+        # for date in self.dates[:1]:
+        for date in self.dates:
             # Yielding request and provide relevant meta data
             request = Request('http://db.netkeiba.com/race/list/%s/' % date.replace('-', ''), callback=self.parse)
             request.meta['date'] = date
@@ -115,7 +115,8 @@ class NetKeibaCrawler(scrapy.Spider):
         current_number = 0
 
         # Add indexing for debugging
-        for element in race_list[:1]:
+        # for element in race_list[:1]:
+        for element in race_list:
             if element[0] <= current_number:
                 current_idx += 1
             current_number = element[0]
@@ -140,6 +141,8 @@ class NetKeibaCrawler(scrapy.Spider):
 
     def parse_race(self, response):
         # Get basic information of the current race record page
+        self.logger.info('Parsing race %s' % response.url)
+
         info_content = response.xpath('//diary_snap_cut/span/text()[normalize-space(.)]').extract_first().split('/')
         info_content = list(map(lambda text: text.strip(), info_content))
         basic_info = [
