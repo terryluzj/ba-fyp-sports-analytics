@@ -1,6 +1,8 @@
 import datetime
+import json
 import os
 import scrapy
+import sqlite3
 from lxml import html
 from scrapy import Request
 from crawler.crawler.items import RaceRecord, HorseRecord, IndividualRecord, TrainerProfile, JockeyProfile
@@ -24,8 +26,6 @@ class NetKeibaCrawler(scrapy.Spider):
         'CONCURRENT_REQUESTS_PER_DOMAIN': 32,
         'DOWNLOAD_DELAY': 1,
     }
-
-    # TODO: Create a database to store links produced during crawling, with status specifying the link is parsed
 
     DOMAIN_URL = ['db.netkeiba.com']
     RACE_COLUMNS = [
@@ -60,11 +60,7 @@ class NetKeibaCrawler(scrapy.Spider):
         '障害初勝利日': 'first_obs_win_date', '障害初勝利馬': 'first_obs_win_horse'
     }
 
-    # Start from the earliest available date
-    with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')) + '/status.log', 'r') as f:
-        START_DATE = f.readline()
-        START_DATE = START_DATE if START_DATE != '' else '2000-01-06'
-        f.close()
+    START_DATE = '2000-01-08'
 
     def __init__(self, *args, **kwargs):
         # Get faculty link for each university
@@ -74,24 +70,85 @@ class NetKeibaCrawler(scrapy.Spider):
         self.logger.info('Start crawling from date %s' % start_date)
         self.dates = []
 
+        # Create a database to store links produced during crawling, with status specifying the link is parsed
+        parent_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        database_path = os.path.join(parent_path, 'data/history.db')
+        self.connection = sqlite3.connect(database_path)
+        self.cursor = self.connection.cursor()
+
+        # SQL CREATE statement
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS crawl_history (link TEXT PRIMARY KEY, 
+                                                                         parsed INTEGER, 
+                                                                         parse_level TEXT,
+                                                                         meta_data TEXT);''')
+        self.connection.commit()
+        self.cursor.execute('SELECT * FROM crawl_history')
+        self.record_exist = bool(self.cursor.fetchone())
+
         # National events are only held on weekend and hence filter out irrelevant date
-        while start_date <= datetime.datetime.utcnow().date():
-            if (start_date.weekday() == 5) | (start_date.weekday() == 6):
-                self.dates.append(str(start_date))
-            start_date += datetime.timedelta(days=1)
+        if not self.record_exist:
+            self.logger.info('No history found and start from date %s' % NetKeibaCrawler.START_DATE)
+            while start_date <= datetime.datetime.utcnow().date():
+                if (start_date.weekday() == 5) | (start_date.weekday() == 6):
+                    self.dates.append(str(start_date))
+                start_date += datetime.timedelta(days=1)
 
     def start_requests(self):
         # Add indexing for debugging
         # for date in self.dates[:1]:
-        for date in self.dates:
-            # Yielding request and provide relevant meta data
-            request = Request('http://db.netkeiba.com/race/list/%s/' % date.replace('-', ''), callback=self.parse)
-            request.meta['date'] = date
-            yield request
+        if not self.record_exist:
+            for date in self.dates:
+                # Yielding request and provide relevant meta data
+                link = 'http://db.netkeiba.com/race/list/%s/' % date.replace('-', '')
+                request = Request(link, callback=self.parse)
+                request.meta['date'] = date
+                request.meta['url_requested'] = link
+                # SQL INSERT statement
+                self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data)
+                                       values (?, ?, ?, ?)''', (link, 0, 'Race List', str(request.meta)))
+                self.connection.commit()
+                yield request
+        else:
+            self.logger.info('Found crawl history and start crawling from the given link list')
+            # Jump to the corresponding level of parsing
+            link_list = self.cursor.execute('SELECT * FROM crawl_history WHERE parsed = 0').fetchall()
+            for record in link_list:
+                link_request = record[0]
+                parse_level = record[2]
+                meta_data = eval(record[3])
+                callback_method = None
+
+                # Get the corresponding callback
+                if parse_level == 'Race List':
+                    callback_method = self.parse
+                elif parse_level == 'Race Record':
+                    callback_method = self.parse_race
+                elif parse_level == 'Horse Record':
+                    callback_method = self.parse_horse
+                elif parse_level == 'Jockey Record':
+                    callback_method = self.parse_jockey
+                elif parse_level == 'Owner Record':
+                    callback_method = self.parse_owner
+                elif parse_level == 'Trainer Record':
+                    callback_method = self.parse_trainer
+                elif parse_level == 'Breeder Record':
+                    callback_method = self.parse_breeder
+                elif parse_level == 'Parent Intermediate Step':
+                    callback_method = self.parse_horse_breed
+                elif parse_level == 'Jockey Profile':
+                    callback_method = self.parse_jockey_profile
+                elif parse_level == 'Trainer Profile':
+                    callback_method = self.parse_trainer_profile
+                if callback_method is not None:
+                    yield Request(link_request, callback=callback_method, meta=meta_data)
 
     def parse(self, response):
         # Parse page content at the top level
         self.logger.info('Parsing at race list %s' % response.url)
+
+        # SQL UPDATE statement
+        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        self.connection.commit()
 
         # Define XPath to extract information from the page
         top_path = '//dl[@class[contains(., "race_top_hold_list")]]'
@@ -130,6 +187,7 @@ class NetKeibaCrawler(scrapy.Spider):
         # Iterate through link dict and yield next-level request
         for key, value in link_dict.items():
             # Initiate new meta data
+            link_request = response.urljoin(value)
             meta_list = key.split(' ')
             target_meta = {
                 'date': response.meta['date'],
@@ -138,16 +196,22 @@ class NetKeibaCrawler(scrapy.Spider):
                     'place': meta_list[1],
                     'race': meta_list[2],
                     'title': meta_list[3]
-                }
+                },
+                'url_requested': link_request
             }
+            # SQL INSERT statement
+            self.cursor.execute('INSERT INTO crawl_history (link, parsed, parse_level, meta_data) values (?, ?, ?, ?)',
+                                (link_request, 0, 'Race Record', str(target_meta)))
+            self.connection.commit()
             yield response.follow(value, meta=target_meta, callback=self.parse_race)
 
     def parse_race(self, response):
         # Get basic information of the current race record page
         self.logger.info('Parsing race %s' % response.url)
-        with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')) + '/status.log', 'w') as f:
-            f.write(response.meta['date'])
-            f.close()
+
+        # SQL UPDATE statement
+        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        self.connection.commit()
 
         info_content = response.xpath('//diary_snap_cut/span/text()[normalize-space(.)]').extract_first().split('/')
         info_content = list(map(lambda text: text.strip(), info_content))
@@ -197,25 +261,60 @@ class NetKeibaCrawler(scrapy.Spider):
 
             # Yield next-level request for horse, jockey, owner and trainer
             for link in sorted(link_element):
+                link_request = response.urljoin(link)
+                curr_record.update({'url_requested': link_request})
                 if 'horse' in link:
+                    # SQL INSERT statement
+                    self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data) 
+                                           values (?, ?, ?, ?)''', (link_request, 0, 'Horse Record', str(curr_record)))
+                    self.connection.commit()
                     yield response.follow(link, callback=self.parse_horse, meta=curr_record)
                 elif 'jockey' in link:
+                    # SQL INSERT statement
+                    self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data) 
+                                           values (?, ?, ?, ?)''', (link_request, 0, 'Jockey Record',
+                                                                    str(curr_record)))
+                    self.connection.commit()
                     yield response.follow(self.format_link(link, 'result'),
                                           callback=self.parse_jockey, meta=curr_record)
                 elif 'owner' in link:
+                    # SQL INSERT statement
+                    self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data) 
+                                           values (?, ?, ?, ?)''', (link_request, 0, 'Owner Record',
+                                                                    str(curr_record)))
+                    self.connection.commit()
                     yield response.follow(self.format_link(link, 'result'), callback=self.parse_owner, meta=curr_record)
                 elif 'trainer' in link:
+                    # SQL INSERT statement
+                    self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data) 
+                                           values (?, ?, ?, ?)''', (link_request, 0, 'Trainer Record',
+                                                                    str(curr_record)))
+                    self.connection.commit()
                     yield response.follow(self.format_link(link, 'result'),
                                           callback=self.parse_trainer, meta=curr_record)
 
     def parse_horse_breed(self, response):
         # Intermediary step for parent horse information crawling
+        # SQL UPDATE statement
+        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        self.connection.commit()
         content = list(map(lambda text: html.fromstring(text), response.xpath('//td[@rowspan="16"]').extract()))
         link_list = [None if len(element.xpath('a/@href')) <= 0 else element.xpath('a/@href')[0] for element in content]
         for link in link_list:
-            yield response.follow(link, callback=self.parse_horse, meta=response.meta)
+            new_meta = response.meta.copy()
+            new_meta['url_requested'] = response.urljoin(link)
+            # SQL INSERT statement
+            self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data) 
+                                   values (?, ?, ?, ?)''',
+                                (response.urljoin(link), 0, 'Horse Record', str(new_meta)))
+            self.connection.commit()
+            yield response.follow(link, callback=self.parse_horse, meta=new_meta)
 
     def parse_horse(self, response):
+        # SQL UPDATE statement
+        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        self.connection.commit()
+
         # Extract basic information
         basic_info = response.xpath('//p[@class="txt_01"]/text()').extract_first().split(u'\u3000')
         if len(basic_info) == 2:
@@ -246,7 +345,14 @@ class NetKeibaCrawler(scrapy.Spider):
         breeder_meta = response.meta.copy()
         breeder_meta['breeder_name'] = profile_dict[u'breeder']
         if breeder_link is not None:
-            yield response.follow(self.format_link(breeder_link, 'result'),
+            breeder_link_request = self.format_link(breeder_link, 'result')
+            breeder_meta.update({'url_requested': response.urljoin(breeder_link_request)})
+            # SQL INSERT statement
+            self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data) 
+                                   values (?, ?, ?, ?)''',
+                                (response.urljoin(breeder_link_request), 0, 'Breeder Record', str(breeder_meta)))
+            self.connection.commit()
+            yield response.follow(breeder_link_request,
                                   callback=self.parse_breeder, meta=breeder_meta)
 
         # Get parent information
@@ -256,13 +362,24 @@ class NetKeibaCrawler(scrapy.Spider):
                       if len(element.xpath('//a/@href')) <= 0 else element.xpath('//a/@href')[0]
                       for element in parent}
             for key, value in parent.items():
+                link_request = response.urljoin(value)
                 response.meta['depth'] -= 1
                 new_meta = response.meta.copy()
                 new_meta['depth'] = response.meta['depth']
                 new_meta['parent'] = True
+                new_meta['url_requested'] = link_request
+                # SQL INSERT statement
+                self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data) 
+                                       values (?, ?, ?, ?)''',
+                                    (link_request, 0, 'Parent Intermediate Step', str(new_meta)))
+                self.connection.commit()
                 yield response.follow(value, callback=self.parse_horse_breed, meta=new_meta)
 
     def parse_breeder(self, response):
+        # SQL UPDATE statement
+        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        self.connection.commit()
+
         # Get table content and basic information
         row_data = self.get_table_rows(response)[1][2:]
         breeder_name = response.meta['breeder_name']
@@ -273,6 +390,10 @@ class NetKeibaCrawler(scrapy.Spider):
             yield breeder_record
 
     def parse_owner(self, response):
+        # SQL UPDATE statement
+        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        self.connection.commit()
+
         # Get table content and basic information
         row_data = self.get_table_rows(response)[1][2:]
         owner_name = response.meta['record'][-2]
@@ -283,6 +404,10 @@ class NetKeibaCrawler(scrapy.Spider):
             yield owner_record
 
     def parse_jockey(self, response):
+        # SQL UPDATE statement
+        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        self.connection.commit()
+
         # Get table content and basic information
         row_data = self.get_table_rows(response)[1][2:]
         jockey_name = response.meta['record'][16]
@@ -300,10 +425,21 @@ class NetKeibaCrawler(scrapy.Spider):
             'row_data': row_data,
             'jockey_name': jockey_name,
             'basic_info': basic_info,
+            'url_requested': profile_link
         }
+
+        # SQL INSERT statement
+        self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data) 
+                               values (?, ?, ?, ?)''',
+                            (profile_link, 0, 'Jockey Profile', str(new_meta)))
+        self.connection.commit()
         yield Request(profile_link, callback=self.parse_jockey_profile, meta=new_meta)
 
     def parse_trainer(self, response):
+        # SQL UPDATE statement
+        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        self.connection.commit()
+
         # Get table content and basic information
         row_data = self.get_table_rows(response)[1][2:]
         trainer_name = response.meta['record'][-3]
@@ -321,10 +457,21 @@ class NetKeibaCrawler(scrapy.Spider):
             'row_data': row_data,
             'trainer_name': trainer_name,
             'basic_info': basic_info,
+            'url_requested': profile_link
         }
+
+        # SQL INSERT statement
+        self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data) 
+                               values (?, ?, ?, ?)''',
+                            (profile_link, 0, 'Trainer Profile', str(new_meta)))
+        self.connection.commit()
         yield Request(profile_link, callback=self.parse_trainer_profile, meta=new_meta)
 
     def parse_jockey_profile(self, response):
+        # SQL UPDATE statement
+        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        self.connection.commit()
+
         # Get profile information
         profile_info = self.get_profile_table(response)
         profile_info = {NetKeibaCrawler.JOCKEY_COLUMNS[key]: value for key, value in profile_info.items()}
@@ -345,6 +492,10 @@ class NetKeibaCrawler(scrapy.Spider):
             yield jockey_record
 
     def parse_trainer_profile(self, response):
+        # SQL UPDATE statement
+        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        self.connection.commit()
+
         # Get profile information
         profile_info = self.get_profile_table(response)
         profile_info = {NetKeibaCrawler.TRAINER_COLUMNS[key]: value for key, value in profile_info.items()}
