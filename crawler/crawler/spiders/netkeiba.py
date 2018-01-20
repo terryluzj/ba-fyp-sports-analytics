@@ -59,14 +59,14 @@ class NetKeibaCrawler(scrapy.Spider):
 
     # Start from the earliest available date
     with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')) + '/status.log', 'r') as f:
-        START_DATE = f.readline() if f.readline() != '' else '06/01/2000'
+        START_DATE = f.readline() if f.readline() != '' else '06-01-2000'
         f.close()
 
     def __init__(self, *args, **kwargs):
         # Get faculty link for each university
         super(NetKeibaCrawler, self).__init__(*args, **kwargs)
         self.allowed_domains = list(NetKeibaCrawler.DOMAIN_URL)
-        start_date = datetime.datetime.strptime(NetKeibaCrawler.START_DATE, '%d/%m/%Y').date()
+        start_date = datetime.datetime.strptime(NetKeibaCrawler.START_DATE, '%d-%m-%Y').date()
         self.dates = []
 
         # National events are only held on weekend and hence filter out irrelevant date
