@@ -16,13 +16,13 @@ class NetKeibaCrawler(scrapy.Spider):
         # Override custom settings preset by scrapy
         # Take a depth-first search algorithm by setting a negative priority or positive otherwise
         'DEPTH_LIMIT': 4,
-        'DEPTH_PRIORITY': -2,
+        'DEPTH_PRIORITY': -4,
         'DEPTH_STATS_VERBOSE': True,
 
         # Limit the concurrent request per domain and moderate the server load
-        'CONCURRENT_REQUESTS': 64,
+        'CONCURRENT_REQUESTS': 16,
         'CONCURRENT_REQUESTS_PER_DOMAIN': 8,
-        'DOWNLOAD_DELAY': 1,
+        'DOWNLOAD_DELAY': 0.5,
     }
 
     DOMAIN_URL = ['db.netkeiba.com']
@@ -254,7 +254,7 @@ class NetKeibaCrawler(scrapy.Spider):
                       if len(element.xpath('//a/@href')) <= 0 else element.xpath('//a/@href')[0]
                       for element in parent}
             for key, value in parent.items():
-                response.meta['depth'] = -1
+                response.meta['depth'] -= 1
                 new_meta = response.meta.copy()
                 new_meta['depth'] = response.meta['depth']
                 new_meta['parent'] = True
