@@ -66,12 +66,10 @@ class NetKeibaCrawler(scrapy.Spider):
         # Get faculty link for each university
         super(NetKeibaCrawler, self).__init__(*args, **kwargs)
         self.allowed_domains = list(NetKeibaCrawler.DOMAIN_URL)
-        start_date = datetime.datetime.strptime(NetKeibaCrawler.START_DATE, '%Y-%m-%d').date()
-        self.logger.info('Start crawling from date %s' % start_date)
-        self.dates = []
 
         # Create a database to store links produced during crawling, with status specifying the link is parsed
         parent_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        parent_path = os.path.join(parent_path, '..')
         database_path = os.path.join(parent_path, 'data/history.db')
         self.connection = sqlite3.connect(database_path)
         self.cursor = self.connection.cursor()
@@ -82,12 +80,13 @@ class NetKeibaCrawler(scrapy.Spider):
                                                                          parse_level TEXT,
                                                                          meta_data TEXT);''')
         self.connection.commit()
-        self.cursor.execute('SELECT * FROM crawl_history')
+        self.cursor.execute('SELECT * FROM crawl_history WHERE parsed = 0')
         self.record_exist = bool(self.cursor.fetchone())
 
         # National events are only held on weekend and hence filter out irrelevant date
         if not self.record_exist:
-            self.logger.info('No history found and start from date %s' % NetKeibaCrawler.START_DATE)
+            start_date = datetime.datetime.strptime(NetKeibaCrawler.START_DATE, '%Y-%m-%d').date()
+            self.dates = []
             while start_date <= datetime.datetime.utcnow().date():
                 if (start_date.weekday() == 5) | (start_date.weekday() == 6):
                     self.dates.append(str(start_date))
@@ -97,6 +96,7 @@ class NetKeibaCrawler(scrapy.Spider):
         # Add indexing for debugging
         # for date in self.dates[:1]:
         if not self.record_exist:
+            self.logger.info('No history found and start from date %s' % NetKeibaCrawler.START_DATE)
             for date in self.dates:
                 # Yielding request and provide relevant meta data
                 link = 'http://db.netkeiba.com/race/list/%s/' % date.replace('-', '')
@@ -265,13 +265,13 @@ class NetKeibaCrawler(scrapy.Spider):
                 curr_record.update({'url_requested': link_request})
                 if 'horse' in link:
                     # SQL INSERT statement
-                    self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data) 
+                    self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
                                            values (?, ?, ?, ?)''', (link_request, 0, 'Horse Record', str(curr_record)))
                     self.connection.commit()
                     yield response.follow(link, callback=self.parse_horse, meta=curr_record)
                 elif 'jockey' in link:
                     # SQL INSERT statement
-                    self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data) 
+                    self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
                                            values (?, ?, ?, ?)''', (link_request, 0, 'Jockey Record',
                                                                     str(curr_record)))
                     self.connection.commit()
@@ -279,14 +279,14 @@ class NetKeibaCrawler(scrapy.Spider):
                                           callback=self.parse_jockey, meta=curr_record)
                 elif 'owner' in link:
                     # SQL INSERT statement
-                    self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data) 
+                    self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
                                            values (?, ?, ?, ?)''', (link_request, 0, 'Owner Record',
                                                                     str(curr_record)))
                     self.connection.commit()
                     yield response.follow(self.format_link(link, 'result'), callback=self.parse_owner, meta=curr_record)
                 elif 'trainer' in link:
                     # SQL INSERT statement
-                    self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data) 
+                    self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
                                            values (?, ?, ?, ?)''', (link_request, 0, 'Trainer Record',
                                                                     str(curr_record)))
                     self.connection.commit()
@@ -304,7 +304,7 @@ class NetKeibaCrawler(scrapy.Spider):
             new_meta = response.meta.copy()
             new_meta['url_requested'] = response.urljoin(link)
             # SQL INSERT statement
-            self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data) 
+            self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
                                    values (?, ?, ?, ?)''',
                                 (response.urljoin(link), 0, 'Horse Record', str(new_meta)))
             self.connection.commit()
@@ -348,7 +348,7 @@ class NetKeibaCrawler(scrapy.Spider):
             breeder_link_request = self.format_link(breeder_link, 'result')
             breeder_meta.update({'url_requested': response.urljoin(breeder_link_request)})
             # SQL INSERT statement
-            self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data) 
+            self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
                                    values (?, ?, ?, ?)''',
                                 (response.urljoin(breeder_link_request), 0, 'Breeder Record', str(breeder_meta)))
             self.connection.commit()
@@ -369,7 +369,7 @@ class NetKeibaCrawler(scrapy.Spider):
                 new_meta['parent'] = True
                 new_meta['url_requested'] = link_request
                 # SQL INSERT statement
-                self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data) 
+                self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
                                        values (?, ?, ?, ?)''',
                                     (link_request, 0, 'Parent Intermediate Step', str(new_meta)))
                 self.connection.commit()
@@ -429,7 +429,7 @@ class NetKeibaCrawler(scrapy.Spider):
         }
 
         # SQL INSERT statement
-        self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data) 
+        self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
                                values (?, ?, ?, ?)''',
                             (profile_link, 0, 'Jockey Profile', str(new_meta)))
         self.connection.commit()
@@ -461,7 +461,7 @@ class NetKeibaCrawler(scrapy.Spider):
         }
 
         # SQL INSERT statement
-        self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data) 
+        self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
                                values (?, ?, ?, ?)''',
                             (profile_link, 0, 'Trainer Profile', str(new_meta)))
         self.connection.commit()
