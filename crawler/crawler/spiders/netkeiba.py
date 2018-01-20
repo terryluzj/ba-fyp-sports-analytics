@@ -20,7 +20,7 @@ class NetKeibaCrawler(scrapy.Spider):
         'DEPTH_STATS_VERBOSE': True,
 
         # Limit the concurrent request per domain and moderate the server load
-        'CONCURRENT_REQUESTS': 16,
+        'CONCURRENT_REQUESTS': 64,
         'CONCURRENT_REQUESTS_PER_DOMAIN': 8,
         'DOWNLOAD_DELAY': 1,
     }
@@ -382,7 +382,7 @@ class NetKeibaCrawler(scrapy.Spider):
         profile = response.xpath('//tr').extract()
         profile_read = list(map(lambda text: html.fromstring(text), profile))
         profile_zipped = list(map(lambda content: content.xpath("//text()[normalize-space(.)]"), profile_read))
-        return {item[0]: item[1] for item in profile_zipped}
+        return {item[0]: '-' if len(item) <= 1 else item[1] for item in profile_zipped}
 
     @staticmethod
     def horse_record_translate(original_string):
