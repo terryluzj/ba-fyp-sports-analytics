@@ -18,7 +18,7 @@ class NetKeibaCrawler(scrapy.Spider):
         # Override custom settings preset by scrapy
         # Take a depth-first search algorithm by setting a negative priority or positive otherwise
         'DEPTH_LIMIT': 4,
-        'DEPTH_PRIORITY': -4,
+        # 'DEPTH_PRIORITY': 0,
         'DEPTH_STATS_VERBOSE': True,
 
         # Limit the concurrent request per domain and moderate the server load
