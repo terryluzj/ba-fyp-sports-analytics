@@ -295,6 +295,8 @@ class NetKeibaCrawler(scrapy.Spider):
 
     def parse_horse_breed(self, response):
         # Intermediary step for parent horse information crawling
+        self.logger.info('Parsing parent %s' % response.url)
+
         # SQL UPDATE statement
         self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
         self.connection.commit()
@@ -311,6 +313,8 @@ class NetKeibaCrawler(scrapy.Spider):
             yield response.follow(link, callback=self.parse_horse, meta=new_meta)
 
     def parse_horse(self, response):
+        self.logger.info('Parsing horse %s' % response.url)
+
         # SQL UPDATE statement
         self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
         self.connection.commit()
@@ -376,6 +380,8 @@ class NetKeibaCrawler(scrapy.Spider):
                 yield response.follow(value, callback=self.parse_horse_breed, meta=new_meta)
 
     def parse_breeder(self, response):
+        self.logger.info('Parsing breeder %s' % response.url)
+
         # SQL UPDATE statement
         self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
         self.connection.commit()
@@ -390,6 +396,8 @@ class NetKeibaCrawler(scrapy.Spider):
             yield breeder_record
 
     def parse_owner(self, response):
+        self.logger.info('Parsing owner %s' % response.url)
+
         # SQL UPDATE statement
         self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
         self.connection.commit()
@@ -404,6 +412,8 @@ class NetKeibaCrawler(scrapy.Spider):
             yield owner_record
 
     def parse_jockey(self, response):
+        self.logger.info('Parsing jockey %s' % response.url)
+
         # SQL UPDATE statement
         self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
         self.connection.commit()
@@ -436,6 +446,8 @@ class NetKeibaCrawler(scrapy.Spider):
         yield Request(profile_link, callback=self.parse_jockey_profile, meta=new_meta)
 
     def parse_trainer(self, response):
+        self.logger.info('Parsing trainer %s' % response.url)
+
         # SQL UPDATE statement
         self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
         self.connection.commit()
@@ -468,6 +480,8 @@ class NetKeibaCrawler(scrapy.Spider):
         yield Request(profile_link, callback=self.parse_trainer_profile, meta=new_meta)
 
     def parse_jockey_profile(self, response):
+        self.logger.info('Parsing jockey profile %s' % response.url)
+
         # SQL UPDATE statement
         self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
         self.connection.commit()
@@ -492,6 +506,8 @@ class NetKeibaCrawler(scrapy.Spider):
             yield jockey_record
 
     def parse_trainer_profile(self, response):
+        self.logger.info('Parsing trainer profile %s' % response.url)
+
         # SQL UPDATE statement
         self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
         self.connection.commit()
