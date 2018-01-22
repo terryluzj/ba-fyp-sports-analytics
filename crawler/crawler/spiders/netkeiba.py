@@ -148,8 +148,8 @@ class NetKeibaCrawler(scrapy.Spider):
         # Parse page content at the top level
         self.logger.info('Parsing at race list %s' % response.url)
 
-        # SQL UPDATE statement
-        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
         self.connection.commit()
 
         # Define XPath to extract information from the page
@@ -220,8 +220,8 @@ class NetKeibaCrawler(scrapy.Spider):
         # Get basic information of the current race record page
         self.logger.info('Parsing race %s' % response.url)
 
-        # SQL UPDATE statement
-        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
         self.connection.commit()
 
         info_content = response.xpath('//diary_snap_cut/span/text()[normalize-space(.)]').extract_first().split('/')
@@ -316,8 +316,8 @@ class NetKeibaCrawler(scrapy.Spider):
         # Intermediary step for parent horse information crawling
         self.logger.info('Parsing parent %s' % response.url)
 
-        # SQL UPDATE statement
-        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
         self.connection.commit()
         content = list(map(lambda text: html.fromstring(text), response.xpath('//td[@rowspan="16"]').extract()))
         link_list = [None if len(element.xpath('a/@href')) <= 0 else element.xpath('a/@href')[0] for element in content]
@@ -338,8 +338,8 @@ class NetKeibaCrawler(scrapy.Spider):
     def parse_horse(self, response):
         self.logger.info('Parsing horse %s' % response.url)
 
-        # SQL UPDATE statement
-        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
         self.connection.commit()
 
         # Extract basic information
@@ -415,8 +415,8 @@ class NetKeibaCrawler(scrapy.Spider):
     def parse_breeder(self, response):
         self.logger.info('Parsing breeder %s' % response.url)
 
-        # SQL UPDATE statement
-        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
         self.connection.commit()
 
         # Get table content and basic information
@@ -431,8 +431,8 @@ class NetKeibaCrawler(scrapy.Spider):
     def parse_owner(self, response):
         self.logger.info('Parsing owner %s' % response.url)
 
-        # SQL UPDATE statement
-        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
         self.connection.commit()
 
         # Get table content and basic information
@@ -447,8 +447,8 @@ class NetKeibaCrawler(scrapy.Spider):
     def parse_jockey(self, response):
         self.logger.info('Parsing jockey %s' % response.url)
 
-        # SQL UPDATE statement
-        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
         self.connection.commit()
 
         # Get table content and basic information
@@ -481,8 +481,8 @@ class NetKeibaCrawler(scrapy.Spider):
     def parse_trainer(self, response):
         self.logger.info('Parsing trainer %s' % response.url)
 
-        # SQL UPDATE statement
-        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
         self.connection.commit()
 
         # Get table content and basic information
@@ -515,8 +515,8 @@ class NetKeibaCrawler(scrapy.Spider):
     def parse_jockey_profile(self, response):
         self.logger.info('Parsing jockey profile %s' % response.url)
 
-        # SQL UPDATE statement
-        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
         self.connection.commit()
 
         # Get profile information
@@ -541,8 +541,8 @@ class NetKeibaCrawler(scrapy.Spider):
     def parse_trainer_profile(self, response):
         self.logger.info('Parsing trainer profile %s' % response.url)
 
-        # SQL UPDATE statement
-        self.cursor.execute('UPDATE crawl_history SET parsed = ? WHERE link = ?', (1, response.meta['url_requested']))
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
         self.connection.commit()
 
         # Get profile information
