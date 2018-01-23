@@ -521,7 +521,8 @@ class NetKeibaCrawler(scrapy.Spider):
 
         # Get profile information
         profile_info = self.get_profile_table(response)
-        profile_info = {NetKeibaCrawler.JOCKEY_COLUMNS[key]: value for key, value in profile_info.items()}
+        profile_info = {key if key not in NetKeibaCrawler.JOCKEY_COLUMNS.keys() else
+                        NetKeibaCrawler.JOCKEY_COLUMNS[key]: value for key, value in profile_info.items()}
         profile_info.update(
             {
                 'jockey_name': response.meta['jockey_name'],
@@ -547,7 +548,8 @@ class NetKeibaCrawler(scrapy.Spider):
 
         # Get profile information
         profile_info = self.get_profile_table(response)
-        profile_info = {NetKeibaCrawler.TRAINER_COLUMNS[key]: value for key, value in profile_info.items()}
+        profile_info = {key if key not in NetKeibaCrawler.TRAINER_COLUMNS.keys()
+                        else NetKeibaCrawler.TRAINER_COLUMNS[key]: value for key, value in profile_info.items()}
         profile_info.update(
             {
                 'trainer_name': response.meta['trainer_name'],
@@ -588,4 +590,7 @@ class NetKeibaCrawler(scrapy.Spider):
 
     @staticmethod
     def horse_record_translate(original_string):
-        return NetKeibaCrawler.HORSE_COLUMNS[original_string]
+        try:
+            return NetKeibaCrawler.HORSE_COLUMNS[original_string]
+        except KeyError:
+            return original_string
