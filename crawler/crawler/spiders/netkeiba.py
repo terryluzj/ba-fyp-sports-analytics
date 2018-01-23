@@ -73,12 +73,19 @@ class NetKeibaCrawler(scrapy.Spider):
         self.connection = sqlite3.connect(database_path)
         self.cursor = self.connection.cursor()
 
+        error_db_path = os.path.join(parent_path, 'data/error.db')
+        self.connection_exp = sqlite3.connect(error_db_path)
+        self.cursor_exp = self.connection_exp.cursor()
+
         # SQL CREATE statement
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS crawl_history (link TEXT PRIMARY KEY, 
                                                                          parsed INTEGER, 
                                                                          parse_level TEXT,
                                                                          meta_data TEXT);''')
         self.connection.commit()
+        self.cursor_exp.execute('''CREATE TABLE IF NOT EXISTS error_history (error_msg TEXT, error_time TEXT)''')
+        self.connection_exp.commit()
+
         self.cursor.execute('SELECT * FROM crawl_history WHERE parsed = 0')
         self.record_exist = bool(self.cursor.fetchone())
 
@@ -565,6 +572,12 @@ class NetKeibaCrawler(scrapy.Spider):
                                       [u'調教師', response.meta['trainer_name']] + row_element))
             trainer_record = IndividualRecord(trainer_record)
             yield trainer_record
+
+    def errback_handling(self, failure):
+        # Handle unexpected error
+        self.cursor_exp.execute('''INSERT OR IGNORE INTO error_history (error_msg, error_time) 
+                                   values (?, ?)''', (repr(failure), str(datetime.datetime.now())))
+        self.connection_exp.commit()
 
     @staticmethod
     def get_table_rows(response):
