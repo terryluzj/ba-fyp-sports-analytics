@@ -113,7 +113,7 @@ class NetKeibaCrawler(scrapy.Spider):
             for date in self.dates:
                 # Yielding request and provide relevant meta data
                 link = 'http://db.netkeiba.com/race/list/%s/' % date.replace('-', '')
-                request = Request(link, callback=self.parse)
+                request = Request(link, callback=self.parse, errback=self.errback_handling)
                 request.meta['date'] = date
                 request.meta['url_requested'] = link
                 yield request
@@ -149,7 +149,7 @@ class NetKeibaCrawler(scrapy.Spider):
                 elif parse_level == 'Trainer Profile':
                     callback_method = self.parse_trainer_profile
                 if callback_method is not None:
-                    yield Request(link_request, callback=callback_method, meta=meta_data)
+                    yield Request(link_request, callback=callback_method, meta=meta_data, errback=self.errback_handling)
 
     def parse(self, response):
         # Parse page content at the top level
@@ -221,7 +221,7 @@ class NetKeibaCrawler(scrapy.Spider):
                 },
                 'url_requested': link_request
             }
-            yield response.follow(value, meta=target_meta, callback=self.parse_race)
+            yield response.follow(value, meta=target_meta, callback=self.parse_race, errback=self.errback_handling)
 
     def parse_race(self, response):
         # Get basic information of the current race record page
@@ -309,15 +309,17 @@ class NetKeibaCrawler(scrapy.Spider):
                 link_request = response.urljoin(link)
                 curr_record.update({'url_requested': link_request})
                 if 'horse' in link:
-                    yield response.follow(link, callback=self.parse_horse, meta=curr_record)
+                    yield response.follow(link, callback=self.parse_horse, meta=curr_record,
+                                          errback=self.errback_handling)
                 elif 'jockey' in link:
                     yield response.follow(self.format_link(link, 'result'),
-                                          callback=self.parse_jockey, meta=curr_record)
+                                          callback=self.parse_jockey, meta=curr_record, errback=self.errback_handling)
                 elif 'owner' in link:
-                    yield response.follow(self.format_link(link, 'result'), callback=self.parse_owner, meta=curr_record)
+                    yield response.follow(self.format_link(link, 'result'), callback=self.parse_owner, meta=curr_record,
+                                          errback=self.errback_handling)
                 elif 'trainer' in link:
                     yield response.follow(self.format_link(link, 'result'),
-                                          callback=self.parse_trainer, meta=curr_record)
+                                          callback=self.parse_trainer, meta=curr_record, errback=self.errback_handling)
 
     def parse_horse_breed(self, response):
         # Intermediary step for parent horse information crawling
@@ -340,7 +342,7 @@ class NetKeibaCrawler(scrapy.Spider):
         for link in link_list:
             new_meta = response.meta.copy()
             new_meta['url_requested'] = response.urljoin(link)
-            yield response.follow(link, callback=self.parse_horse, meta=new_meta)
+            yield response.follow(link, callback=self.parse_horse, meta=new_meta, errback=self.errback_handling)
 
     def parse_horse(self, response):
         self.logger.info('Parsing horse %s' % response.url)
@@ -390,7 +392,7 @@ class NetKeibaCrawler(scrapy.Spider):
         if breeder_link is not None:
             breeder_link_request = self.format_link(breeder_link, 'result')
             yield response.follow(breeder_link_request,
-                                  callback=self.parse_breeder, meta=breeder_meta)
+                                  callback=self.parse_breeder, meta=breeder_meta, errback=self.errback_handling)
 
         # Get parent information
         if not response.meta.get('parent', False):
@@ -417,7 +419,8 @@ class NetKeibaCrawler(scrapy.Spider):
                 new_meta['depth'] = response.meta['depth']
                 new_meta['parent'] = True
                 new_meta['url_requested'] = link_request
-                yield response.follow(value, callback=self.parse_horse_breed, meta=new_meta)
+                yield response.follow(value, callback=self.parse_horse_breed, meta=new_meta,
+                                      errback=self.errback_handling)
 
     def parse_breeder(self, response):
         self.logger.info('Parsing breeder %s' % response.url)
@@ -483,7 +486,7 @@ class NetKeibaCrawler(scrapy.Spider):
                                values (?, ?, ?, ?)''',
                             (profile_link, 0, 'Jockey Profile', str(new_meta)))
         self.connection.commit()
-        yield Request(profile_link, callback=self.parse_jockey_profile, meta=new_meta)
+        yield Request(profile_link, callback=self.parse_jockey_profile, meta=new_meta, errback=self.errback_handling)
 
     def parse_trainer(self, response):
         self.logger.info('Parsing trainer %s' % response.url)
@@ -517,7 +520,7 @@ class NetKeibaCrawler(scrapy.Spider):
                                values (?, ?, ?, ?)''',
                             (profile_link, 0, 'Trainer Profile', str(new_meta)))
         self.connection.commit()
-        yield Request(profile_link, callback=self.parse_trainer_profile, meta=new_meta)
+        yield Request(profile_link, callback=self.parse_trainer_profile, meta=new_meta, errback=self.errback_handling)
 
     def parse_jockey_profile(self, response):
         self.logger.info('Parsing jockey profile %s' % response.url)
