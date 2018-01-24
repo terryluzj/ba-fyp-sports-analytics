@@ -3,6 +3,7 @@ Final Year Project (FYP) for B.Sc. (Business Analytics).
 
 ## References
 **Rと競馬データで学ぶ統計学:** http://dokoka.org/
+
 **Athlytics: Data Mining and Machine Learning for Sports Analytics:** http://www.pitt.edu/~kpele/kdd2017-tutorial.html
 
 ## Data Sources (Example: 2007年1月8日1回中山3日9:50発走サラ系3歳未勝利):
