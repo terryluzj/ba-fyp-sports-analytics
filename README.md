@@ -1,5 +1,4 @@
 # BA-BT4101-Sports-Analytics
-Final Year Project (FYP) for B.Sc. (Business Analytics).
 
 ## References
 **Rと競馬データで学ぶ統計学:** http://dokoka.org/
