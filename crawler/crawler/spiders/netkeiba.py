@@ -38,7 +38,8 @@ class NetKeibaCrawler(scrapy.Spider):
         '調教師': 'trainer', '馬主': 'owner', '生産者': 'breeder',
         '産地': 'place_of_birth', 'セリ取引価格': 'transaction_price',
         '獲得賞金': 'prize_obtained', '通算成績': 'race_record',
-        '主な勝鞍': "highlight_race", '近親馬': 'relatives'
+        '主な勝鞍': "highlight_race", '近親馬': 'relatives',
+        '募集情報': 'offer_info'
     }
     INDIVIDUAL_COLUMNS = [
         'individual_type', 'name', 'year', 'rank', 'first', 'second', 'third', 'out',
@@ -252,6 +253,7 @@ class NetKeibaCrawler(scrapy.Spider):
         # Iterate through each row element
         for row_element, link_element in zip(row_data, row_link):
             try:
+                row_element = [element for element in row_element if element != '**']
                 assert (len(row_element) == 17) | (len(row_element) == 18)
                 if row_element[0] == '1':
                     row_element = row_element[:8] + ['-'] + row_element[8:]

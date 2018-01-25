@@ -41,7 +41,7 @@ class CrawlerPipeline(object):
                 horse_name TEXT PRIMARY KEY,
                 date_of_birth DATETIME, trainer TEXT, owner TEXT, breeder TEXT, place_of_birth TEXT, 
                 transaction_price TEXT, prize_obtained TEXT, race_record TEXT, highlight_race TEXT,
-                relatives TEXT, status TEXT, gender TEXT, breed TEXT
+                relatives TEXT, status TEXT, gender TEXT, breed TEXT, offer_info TEXT
             );
         ''')
 
@@ -103,14 +103,15 @@ class CrawlerPipeline(object):
             self.cursor.execute('''
                 INSERT OR IGNORE INTO horse_record 
                 (horse_name, date_of_birth, trainer, owner, breeder, place_of_birth, 
-                 transaction_price, prize_obtained, race_record, highlight_race, relatives, status, gender, breed
-                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 transaction_price, prize_obtained, race_record, highlight_race, relatives, status, gender, breed, 
+                 offer_info
+                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (item.get('horse_name', 'null'), item.get('date_of_birth', 'null'), item.get('trainer', 'null'),
                       item.get('owner', 'null'), item.get('breeder', 'null'), item.get('place_of_birth', 'null'),
                       item.get('transaction_price', 'null'), item.get('prize_obtained', 'null'),
                       item.get('race_record', 'null'), item.get('highlight_race', 'null'),
                       item.get('relatives', 'null'), item.get('status', 'null'), item.get('gender', 'null'),
-                      item.get('breed', 'null'))
+                      item.get('breed', 'null'), item.get('offer_info', 'null'))
             )
         elif isinstance(item, IndividualRecord):
             self.cursor.execute('''
