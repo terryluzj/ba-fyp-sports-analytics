@@ -379,7 +379,6 @@ class NetKeibaCrawler(scrapy.Spider):
         parent = {' '.join(element.xpath('//text()[normalize-space(.)]')): '-' if len(element.xpath('//a/@href')) <= 0
                   else element.xpath('//a/@href')[0] for element in parent}
         profile_dict.update({'parents': ' '.join(list(parent.keys()))})
-        print(profile_dict)
 
         # Yield item of horse record
         horse_record = HorseRecord(profile_dict)
