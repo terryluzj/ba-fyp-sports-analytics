@@ -374,6 +374,13 @@ class NetKeibaCrawler(scrapy.Spider):
         profile_dict = {self.horse_record_translate(item[0]): item[1] for item in profile_zipped}
         profile_dict.update(info_dict)
 
+        # Extract parent links
+        parent = list(map(lambda text: html.fromstring(text), response.xpath('//td[@rowspan="2"]').extract()))
+        parent = {' '.join(element.xpath('//text()[normalize-space(.)]')): '-' if len(element.xpath('//a/@href')) <= 0
+                  else element.xpath('//a/@href')[0] for element in parent}
+        profile_dict.update({'parents': ' '.join(list(parent.keys()))})
+        print(profile_dict)
+
         # Yield item of horse record
         horse_record = HorseRecord(profile_dict)
         yield horse_record
@@ -398,10 +405,6 @@ class NetKeibaCrawler(scrapy.Spider):
 
         # Get parent information
         if not response.meta.get('parent', False):
-            parent = list(map(lambda text: html.fromstring(text), response.xpath('//td[@rowspan="2"]').extract()))
-            parent = {' '.join(element.xpath('//text()[normalize-space(.)]')): '-'
-                      if len(element.xpath('//a/@href')) <= 0 else element.xpath('//a/@href')[0]
-                      for element in parent}
             for key, value in parent.items():
                 link_request = response.urljoin(value)
                 new_meta = response.meta.copy()
