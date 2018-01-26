@@ -63,6 +63,7 @@ class HorseRecord(Item):
     status = Field(output_processor=TakeFirst())
     gender = Field(output_processor=TakeFirst())
     breed = Field(output_processor=TakeFirst())
+    offer_info = Field(output_processor=TakeFirst())
 
     def __repr__(self):
         return repr({'horse_name': self['horse_name']})
