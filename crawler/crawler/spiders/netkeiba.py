@@ -174,9 +174,12 @@ class NetKeibaCrawler(scrapy.Spider):
         href_list = response.xpath(sub_path_list[3]).extract()
 
         # Re-organize information order and store into a temporary dictionary for next-level parsing
-        race_list = [[int(race_num.strip('R')), title, link] for race_num, title, link in zip(race_num_list,
-                                                                                              title_list,
-                                                                                              href_list)]
+        race_list = []
+        for race_num, title, link in zip(race_num_list, title_list, href_list):
+            try:
+                race_list.append([int(race_num.strip('R')), title, link])
+            except ValueError:
+                pass
         link_dict = {}
 
         # Linearly scan through the race record list
