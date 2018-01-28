@@ -174,9 +174,12 @@ class NetKeibaCrawler(scrapy.Spider):
         href_list = response.xpath(sub_path_list[3]).extract()
 
         # Re-organize information order and store into a temporary dictionary for next-level parsing
-        race_list = [[int(race_num.strip('R')), title, link] for race_num, title, link in zip(race_num_list,
-                                                                                              title_list,
-                                                                                              href_list)]
+        race_list = []
+        for race_num, title, link in zip(race_num_list, title_list, href_list):
+            try:
+                race_list.append([int(race_num.strip('R')), title, link])
+            except ValueError:
+                pass
         link_dict = {}
 
         # Linearly scan through the race record list
@@ -374,6 +377,12 @@ class NetKeibaCrawler(scrapy.Spider):
         profile_dict = {self.horse_record_translate(item[0]): item[1] for item in profile_zipped}
         profile_dict.update(info_dict)
 
+        # Extract parent links
+        parent = list(map(lambda text: html.fromstring(text), response.xpath('//td[@rowspan="2"]').extract()))
+        parent = {' '.join(element.xpath('//text()[normalize-space(.)]')): '-' if len(element.xpath('//a/@href')) <= 0
+                  else element.xpath('//a/@href')[0] for element in parent}
+        profile_dict.update({'parents': ' '.join(list(parent.keys()))})
+
         # Yield item of horse record
         horse_record = HorseRecord(profile_dict)
         yield horse_record
@@ -398,10 +407,6 @@ class NetKeibaCrawler(scrapy.Spider):
 
         # Get parent information
         if not response.meta.get('parent', False):
-            parent = list(map(lambda text: html.fromstring(text), response.xpath('//td[@rowspan="2"]').extract()))
-            parent = {' '.join(element.xpath('//text()[normalize-space(.)]')): '-'
-                      if len(element.xpath('//a/@href')) <= 0 else element.xpath('//a/@href')[0]
-                      for element in parent}
             for key, value in parent.items():
                 link_request = response.urljoin(value)
                 new_meta = response.meta.copy()

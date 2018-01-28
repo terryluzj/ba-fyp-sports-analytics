@@ -58,6 +58,7 @@ class HorseRecord(Item):
     race_record = Field(output_processor=TakeFirst())
     highlight_race = Field(output_processor=TakeFirst())
     relatives = Field(output_processor=TakeFirst())
+    parents = Field(output_processor=TakeFirst())
 
     # Basic Information
     status = Field(output_processor=TakeFirst())
