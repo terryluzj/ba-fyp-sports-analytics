@@ -166,7 +166,7 @@ class NetKeibaCrawler(scrapy.Spider):
             'dt/p/text()',  # Place
             'dd//dt/text()',  # Race Number
             '/dd//a/@title',  # Race Title
-            '/dd//a/@href'  # Href
+            '/dd//a/@href[not(contains(., "movie"))]'  # Href
         ]))
         place_list = list(map(lambda name: name.strip(), response.xpath(sub_path_list[0]).extract()))
         race_num_list = response.xpath(sub_path_list[1]).extract()
