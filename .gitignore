@@ -6,3 +6,4 @@
 *.db
 *.db-journal
 *.csv
+crawler/data/links.txt
