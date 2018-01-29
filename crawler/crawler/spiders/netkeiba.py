@@ -242,7 +242,7 @@ class NetKeibaCrawler(scrapy.Spider):
             link_request = response.urljoin(value)
             meta_list = key.split(' ')
             if self.is_duplicate(link_request):
-                self.logger.info('Found and filtered duplicate %s' % link_request)
+                # self.logger.info('Found and filtered duplicate %s' % link_request)
                 continue
             target_meta = {
                 'date': response.meta['date'],
@@ -345,7 +345,7 @@ class NetKeibaCrawler(scrapy.Spider):
             for link in sorted(link_element):
                 link_request = response.urljoin(link)
                 if self.is_duplicate(link_request):
-                    self.logger.info('Found and filtered duplicate %s' % link_request)
+                    # self.logger.info('Found and filtered duplicate %s' % link_request)
                     continue
                 curr_record.update({'url_requested': link_request})
                 if 'horse' in link:
@@ -387,7 +387,7 @@ class NetKeibaCrawler(scrapy.Spider):
 
         for link in link_list:
             if self.is_duplicate(response.urljoin(link)):
-                self.logger.info('Found and filtered duplicate %s' % response.urljoin(link))
+                # self.logger.info('Found and filtered duplicate %s' % response.urljoin(link))
                 continue
             new_meta = response.meta.copy()
             new_meta['url_requested'] = response.urljoin(link)
@@ -454,7 +454,8 @@ class NetKeibaCrawler(scrapy.Spider):
         if breeder_link is not None:
             breeder_link_request = self.format_link(breeder_link, 'result')
             if self.is_duplicate(response.urljoin(breeder_link_request)):
-                self.logger.info('Found and filtered duplicate %s' % response.urljoin(breeder_link_request))
+                # self.logger.info('Found and filtered duplicate %s' % response.urljoin(breeder_link_request))
+                pass
             else:
                 yield response.follow(breeder_link_request,
                                       callback=self.parse_breeder, meta=breeder_meta, errback=self.errback_handling)
@@ -478,7 +479,7 @@ class NetKeibaCrawler(scrapy.Spider):
             for key, value in parent.items():
                 link_request = response.urljoin(value)
                 if self.is_duplicate(link_request):
-                    self.logger.info('Found and filtered duplicate %s' % link_request)
+                    # self.logger.info('Found and filtered duplicate %s' % link_request)
                     continue
                 response.meta['depth'] -= 1
                 new_meta = response.meta.copy()
@@ -560,7 +561,8 @@ class NetKeibaCrawler(scrapy.Spider):
         }
 
         if self.is_duplicate(profile_link):
-            self.logger.info('Found and filtered duplicate %s' % profile_link)
+            # self.logger.info('Found and filtered duplicate %s' % profile_link)
+            pass
         else:
             # SQL INSERT statement
             self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
@@ -602,7 +604,8 @@ class NetKeibaCrawler(scrapy.Spider):
         }
 
         if self.is_duplicate(profile_link):
-            self.logger.info('Found and filtered duplicate %s' % profile_link)
+            # self.logger.info('Found and filtered duplicate %s' % profile_link)
+            pass
         else:
             # SQL INSERT statement
             self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
