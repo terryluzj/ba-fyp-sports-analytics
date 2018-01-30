@@ -23,7 +23,7 @@ class NetKeibaCrawler(scrapy.Spider):
         # Limit the concurrent request per domain and moderate the server load
         'CONCURRENT_REQUESTS': 16,
         # 'CONCURRENT_REQUESTS_PER_DOMAIN': 8,
-        'DOWNLOAD_DELAY': 0.5,
+        'DOWNLOAD_DELAY': 0.2,
     }
 
     DOMAIN_URL = ['db.netkeiba.com']
