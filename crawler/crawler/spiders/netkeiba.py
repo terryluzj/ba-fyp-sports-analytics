@@ -116,8 +116,8 @@ class NetKeibaCrawler(scrapy.Spider):
             for date in self.dates:
                 link = 'http://db.netkeiba.com/race/list/%s/' % date.replace('-', '')
                 # SQL INSERT statement, separated from yield statement
-                self.cursor.execute('''INSERT INTO crawl_history (link, parsed, parse_level, meta_data)
-                                                       values (?, ?, ?, ?)''',
+                self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data)
+                                       values (?, ?, ?, ?)''',
                                     (link, 0, 'Race List', str({'url_requested': link, 'date': date})))
                 self.connection.commit()
 
@@ -229,8 +229,8 @@ class NetKeibaCrawler(scrapy.Spider):
                 'url_requested': link_request
             }
             # SQL INSERT statement, separated from yield statement
-            self.cursor.execute('INSERT INTO crawl_history (link, parsed, parse_level, meta_data) values (?, ?, ?, ?)',
-                                (link_request, 0, 'Race Record', str(target_meta)))
+            self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data)
+                                   values (?, ?, ?, ?)''', (link_request, 0, 'Race Record', str(target_meta)))
             self.connection.commit()
 
         for key, value in link_dict.items():
