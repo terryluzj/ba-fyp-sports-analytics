@@ -22,7 +22,7 @@ class NetKeibaCrawler(scrapy.Spider):
 
         # Limit the concurrent request per domain and moderate the server load
         'CONCURRENT_REQUESTS': 16,
-        'CONCURRENT_REQUESTS_PER_DOMAIN': 8,
+        # 'CONCURRENT_REQUESTS_PER_DOMAIN': 8,
         'DOWNLOAD_DELAY': 0.5,
     }
 
@@ -177,10 +177,6 @@ class NetKeibaCrawler(scrapy.Spider):
             f.write(response.meta['url_requested'] + '\n')
             f.close()
 
-        # SQL DELETE statement
-        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
-        self.connection.commit()
-
         # Define XPath to extract information from the page
         top_path = '//dl[@class[contains(., "race_top_hold_list")]]'
         sub_path_list = list(map(lambda path: top_path + '/%s' % path, [
@@ -253,6 +249,10 @@ class NetKeibaCrawler(scrapy.Spider):
             }
             yield response.follow(value, meta=target_meta, callback=self.parse_race, errback=self.errback_handling)
 
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'],))
+        self.connection.commit()
+
     def parse_race(self, response):
         # Get basic information of the current race record page
         self.logger.info('Parsing race %s' % response.url)
@@ -260,10 +260,6 @@ class NetKeibaCrawler(scrapy.Spider):
         with open(self.links_append_path, 'a') as f:
             f.write(response.meta['url_requested'] + '\n')
             f.close()
-
-        # SQL DELETE statement
-        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
-        self.connection.commit()
 
         info_content = response.xpath('//diary_snap_cut/span/text()[normalize-space(.)]').extract_first().split('/')
         info_content = list(map(lambda text: text.strip(), info_content))
@@ -361,6 +357,10 @@ class NetKeibaCrawler(scrapy.Spider):
                     yield response.follow(self.format_link(link, 'result'),
                                           callback=self.parse_trainer, meta=curr_record, errback=self.errback_handling)
 
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'],))
+        self.connection.commit()
+
     def parse_horse_breed(self, response):
         # Intermediary step for parent horse information crawling
         self.logger.info('Parsing parent %s' % response.url)
@@ -369,9 +369,6 @@ class NetKeibaCrawler(scrapy.Spider):
             f.write(response.meta['url_requested'] + '\n')
             f.close()
 
-        # SQL DELETE statement
-        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
-        self.connection.commit()
         content = list(map(lambda text: html.fromstring(text), response.xpath('//td[@rowspan="16"]').extract()))
         link_list = [None if len(element.xpath('a/@href')) <= 0 else element.xpath('a/@href')[0] for element in content]
         for link in link_list:
@@ -393,16 +390,16 @@ class NetKeibaCrawler(scrapy.Spider):
             new_meta['url_requested'] = response.urljoin(link)
             yield response.follow(link, callback=self.parse_horse, meta=new_meta, errback=self.errback_handling)
 
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'],))
+        self.connection.commit()
+
     def parse_horse(self, response):
         self.logger.info('Parsing horse %s' % response.url)
         self.links[response.meta['url_requested']] = True
         with open(self.links_append_path, 'a') as f:
             f.write(response.meta['url_requested'] + '\n')
             f.close()
-
-        # SQL DELETE statement
-        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
-        self.connection.commit()
 
         # Extract basic information
         basic_info = response.xpath('//p[@class="txt_01"]/text()').extract_first().split(u'\u3000')
@@ -489,16 +486,16 @@ class NetKeibaCrawler(scrapy.Spider):
                 yield response.follow(value, callback=self.parse_horse_breed, meta=new_meta,
                                       errback=self.errback_handling)
 
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'],))
+        self.connection.commit()
+
     def parse_breeder(self, response):
         self.logger.info('Parsing breeder %s' % response.url)
         self.links[response.meta['url_requested']] = True
         with open(self.links_append_path, 'a') as f:
             f.write(response.meta['url_requested'] + '\n')
             f.close()
-
-        # SQL DELETE statement
-        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
-        self.connection.commit()
 
         # Get table content and basic information
         row_data = self.get_table_rows(response)[1][2:]
@@ -509,16 +506,16 @@ class NetKeibaCrawler(scrapy.Spider):
             breeder_record = IndividualRecord(breeder_record)
             yield breeder_record
 
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'],))
+        self.connection.commit()
+
     def parse_owner(self, response):
         self.logger.info('Parsing owner %s' % response.url)
         self.links[response.meta['url_requested']] = True
         with open(self.links_append_path, 'a') as f:
             f.write(response.meta['url_requested'] + '\n')
             f.close()
-
-        # SQL DELETE statement
-        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
-        self.connection.commit()
 
         # Get table content and basic information
         row_data = self.get_table_rows(response)[1][2:]
@@ -529,16 +526,16 @@ class NetKeibaCrawler(scrapy.Spider):
             owner_record = IndividualRecord(owner_record)
             yield owner_record
 
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'],))
+        self.connection.commit()
+
     def parse_jockey(self, response):
         self.logger.info('Parsing jockey %s' % response.url)
         self.links[response.meta['url_requested']] = True
         with open(self.links_append_path, 'a') as f:
             f.write(response.meta['url_requested'] + '\n')
             f.close()
-
-        # SQL DELETE statement
-        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
-        self.connection.commit()
 
         # Get table content and basic information
         row_data = self.get_table_rows(response)[1][2:]
@@ -572,16 +569,16 @@ class NetKeibaCrawler(scrapy.Spider):
             yield Request(profile_link, callback=self.parse_jockey_profile, meta=new_meta,
                           errback=self.errback_handling)
 
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'],))
+        self.connection.commit()
+
     def parse_trainer(self, response):
         self.logger.info('Parsing trainer %s' % response.url)
         self.links[response.meta['url_requested']] = True
         with open(self.links_append_path, 'a') as f:
             f.write(response.meta['url_requested'] + '\n')
             f.close()
-
-        # SQL DELETE statement
-        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
-        self.connection.commit()
 
         # Get table content and basic information
         row_data = self.get_table_rows(response)[1][2:]
@@ -615,16 +612,16 @@ class NetKeibaCrawler(scrapy.Spider):
             yield Request(profile_link, callback=self.parse_trainer_profile, meta=new_meta,
                           errback=self.errback_handling)
 
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'],))
+        self.connection.commit()
+
     def parse_jockey_profile(self, response):
         self.logger.info('Parsing jockey profile %s' % response.url)
         self.links[response.meta['url_requested']] = True
         with open(self.links_append_path, 'a') as f:
             f.write(response.meta['url_requested'] + '\n')
             f.close()
-
-        # SQL DELETE statement
-        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
-        self.connection.commit()
 
         # Get profile information
         profile_info = self.get_profile_table(response)
@@ -646,16 +643,16 @@ class NetKeibaCrawler(scrapy.Spider):
             jockey_record = IndividualRecord(jockey_record)
             yield jockey_record
 
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'],))
+        self.connection.commit()
+
     def parse_trainer_profile(self, response):
         self.logger.info('Parsing trainer profile %s' % response.url)
         self.links[response.meta['url_requested']] = True
         with open(self.links_append_path, 'a') as f:
             f.write(response.meta['url_requested'] + '\n')
             f.close()
-
-        # SQL DELETE statement
-        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'], ))
-        self.connection.commit()
 
         # Get profile information
         profile_info = self.get_profile_table(response)
@@ -676,6 +673,10 @@ class NetKeibaCrawler(scrapy.Spider):
                                       [u'調教師', response.meta['trainer_name']] + row_element))
             trainer_record = IndividualRecord(trainer_record)
             yield trainer_record
+
+        # SQL DELETE statement
+        self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'],))
+        self.connection.commit()
 
     def errback_handling(self, failure):
         # Handle unexpected error

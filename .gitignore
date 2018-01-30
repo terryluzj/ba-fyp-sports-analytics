@@ -7,3 +7,4 @@
 *.db-journal
 *.csv
 crawler/data/links.txt
+*.py___jb_old___
