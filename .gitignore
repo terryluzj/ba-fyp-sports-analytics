@@ -8,3 +8,4 @@
 *.csv
 crawler/data/links.txt
 *.py___jb_old___
+analysis/temp/links.txt
