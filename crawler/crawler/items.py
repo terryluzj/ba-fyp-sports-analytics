@@ -38,7 +38,7 @@ class RaceRecord(Item):
     win_fav = Field(output_processor=TakeFirst())
     horse_weight = Field(output_processor=TakeFirst())
     trainer = Field(output_processor=TakeFirst())
-    breeder = Field(output_processor=TakeFirst())
+    owner = Field(output_processor=TakeFirst())
     prize = Field(output_processor=TakeFirst())
 
     def __repr__(self):

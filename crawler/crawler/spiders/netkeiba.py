@@ -27,12 +27,14 @@ class NetKeibaCrawler(scrapy.Spider):
     }
 
     DOMAIN_URL = ['db.netkeiba.com']
-    RACE_COLUMNS = [
-        'run_date', 'place', 'race', 'title', 'type', 'track', 'distance', 'weather', 'condition', 'time',
-        'finishing_position', 'bracket', 'horse_number', 'horse', 'sex_age', 'jockey_weight', 'jockey',
-        'run_time', 'margin', 'corner_position', 'run_time_last_600', 'win_odds', 'win_fav', 'horse_weight',
-        'trainer', 'breeder', 'prize'
-    ]
+    RACE_COLUMNS = {
+        'run_date': 'run_date', 'place': 'place', 'race': 'race', 'title': 'title', 'type': 'type', 'track': 'track',
+        'distance': 'distance', 'weather': 'weather', 'condition': 'condition', 'time': 'time',
+        '着順': 'finishing_position', '枠番': 'bracket', '馬番': 'horse_number', '馬名': 'horse', 
+        '性齢': 'sex_age', '斤量': 'jockey_weight', '騎手': 'jockey', 'タイム': 'run_time', '着差': 'margin',
+        '通過': 'corner_position', '上り': 'run_time_last_600', '単勝': 'win_odds', '人気': 'win_fav', 
+        '馬体重': 'horse_weight', '調教師': 'trainer', '馬主': 'owner', '賞金(万円)': 'prize'
+    }
     HORSE_COLUMNS = {
         '生年月日': 'date_of_birth',
         '調教師': 'trainer', '馬主': 'owner', '生産者': 'breeder',
@@ -60,7 +62,7 @@ class NetKeibaCrawler(scrapy.Spider):
         '障害初勝利日': 'first_obs_win_date', '障害初勝利馬': 'first_obs_win_horse'
     }
 
-    START_DATE = '2000-01-08'
+    START_DATE = '2018-01-08'
 
     def __init__(self, *args, **kwargs):
         # Get faculty link for each university
@@ -224,7 +226,7 @@ class NetKeibaCrawler(scrapy.Spider):
             target_meta = {
                 'date': response.meta['date'],
                 'custom': {
-                    'date': meta_list[0], 'place': meta_list[1], 'race': meta_list[2], 'title': meta_list[3]
+                    'run_date': meta_list[0], 'place': meta_list[1], 'race': meta_list[2], 'title': meta_list[3]
                 },
                 'url_requested': link_request
             }
@@ -243,7 +245,7 @@ class NetKeibaCrawler(scrapy.Spider):
             target_meta = {
                 'date': response.meta['date'],
                 'custom': {
-                    'date': meta_list[0], 'place': meta_list[1], 'race': meta_list[2], 'title': meta_list[3]
+                    'run_date': meta_list[0], 'place': meta_list[1], 'race': meta_list[2], 'title': meta_list[3]
                 },
                 'url_requested': link_request
             }
@@ -263,24 +265,27 @@ class NetKeibaCrawler(scrapy.Spider):
 
         info_content = response.xpath('//diary_snap_cut/span/text()[normalize-space(.)]').extract_first().split('/')
         info_content = list(map(lambda text: text.strip(), info_content))
-        basic_info = [
-            info_content[0][0],  # Course Type
-            info_content[0][1],  # Race Direction
-            info_content[0][2:],  # Run Distance
-            info_content[1].split(' : ')[-1],  # Weather
-            info_content[2].split(' : ')[-1],  # Condition
-            info_content[3].split(' : ')[-1]  # Start Time
-        ]
+        basic_info = {
+            'type': info_content[0][0],  # Course Type
+            'track': info_content[0][1],  # Race Direction
+            'distance': info_content[0][2:],  # Run Distance
+            'weather': info_content[1].split(' : ')[-1],  # Weather
+            'condition': info_content[2].split(' : ')[-1],  # Condition
+            'time': info_content[3].split(' : ')[-1]  # Start Time
+        }
+        basic_info.update(response.meta['custom'])
 
         # Get the table content from the current page
         table_content = self.get_table_rows(response)
         row_content = table_content[0]
         row_data = table_content[1]
+        row_data = list(map(lambda row: dict(zip(row_data[0], row)), row_data[1:]))
         row_link = list(map(lambda content: list(map(lambda anchor: anchor.attrib['href'],
                                                      content.xpath('//td//a[@href]'))), row_content))
 
         # Iterate through each row element
         for row_element, link_element in zip(row_data, row_link):
+            ''' Legacy code to parse row element
             try:
                 row_element = [element for element in row_element if element != '**']
                 assert (len(row_element) == 17) | (len(row_element) == 18)
@@ -303,9 +308,16 @@ class NetKeibaCrawler(scrapy.Spider):
                 # '1', '458(-2)', '[東]稲葉隆一', '岡田美佐子', '510.0']
                 'record': list(response.meta['custom'].values()) + basic_info + row_element
             }
+            '''
+            record = {self.RACE_COLUMNS[key]: value for key, value in row_element.items()
+                      if key in self.RACE_COLUMNS.keys()}
+            record.update(basic_info)
+            curr_record = {
+                'record': record
+            }
 
             # Yield item of race record
-            race_record = RaceRecord(dict(zip(NetKeibaCrawler.RACE_COLUMNS, curr_record['record'])))
+            race_record = RaceRecord(record)
             yield race_record
 
             # Yield next-level request for horse, jockey, owner and trainer
@@ -408,7 +420,7 @@ class NetKeibaCrawler(scrapy.Spider):
         elif len(basic_info) == 1:
             basic_info = ['-'] + basic_info + ['-']
         info_dict = {
-            'horse_name': response.meta['record'][13],
+            'horse_name': response.meta['record']['horse'],
             'status': basic_info[0],
             'gender': basic_info[1],
             'breed': basic_info[2]
@@ -519,7 +531,7 @@ class NetKeibaCrawler(scrapy.Spider):
 
         # Get table content and basic information
         row_data = self.get_table_rows(response)[1][2:]
-        owner_name = response.meta['record'][-2]
+        owner_name = response.meta['record']['owner']
         for row_element in row_data:
             # Yield item of owner record
             owner_record = dict(zip(NetKeibaCrawler.INDIVIDUAL_COLUMNS, [u'馬主', owner_name] + row_element))
@@ -539,7 +551,7 @@ class NetKeibaCrawler(scrapy.Spider):
 
         # Get table content and basic information
         row_data = self.get_table_rows(response)[1][2:]
-        jockey_name = response.meta['record'][16]
+        jockey_name = response.meta['record']['jockey']
         basic_info = response.xpath('//p[@class="txt_01"]/text()[normalize-space(.)]').extract_first()
         try:
             basic_info = basic_info.strip().replace('\n', ' ').split(' ')[0]
@@ -582,7 +594,7 @@ class NetKeibaCrawler(scrapy.Spider):
 
         # Get table content and basic information
         row_data = self.get_table_rows(response)[1][2:]
-        trainer_name = response.meta['record'][-3]
+        trainer_name = response.meta['record']['trainer']
         basic_info = response.xpath('//p[@class="txt_01"]/text()[normalize-space(.)]').extract_first()
         try:
             basic_info = basic_info.strip().replace('\n', ' ').split(' ')[0]
@@ -694,10 +706,17 @@ class NetKeibaCrawler(scrapy.Spider):
 
     @staticmethod
     def get_table_rows(response):
+        def get_text_data(row_element):
+            # Get text element by visiting its descendant
+            text_xpath = 'descendant-or-self::*//text()[normalize-space(.)]'
+            lst = list(map(lambda element: ''.join(''.join(element.xpath(text_xpath)).strip().splitlines()),
+                           row_element))
+            return lst
         # Get table content by the following XPath
         table_content = response.xpath('//table[@class[contains(., "race_table")]]/tr')
-        row_content = list(map(lambda content: html.fromstring(content), table_content.extract()))[1:]
-        row_data = list(map(lambda html_content: html_content.xpath('//td//text()[normalize-space(.)]'), row_content))
+        row_content = list(map(lambda content: html.fromstring(content), table_content.extract()))
+        row_data = list(map(lambda html_content: html_content.xpath('//td | //th'), row_content))
+        row_data = list(map(lambda row: get_text_data(row), row_data))
         return row_content, row_data
 
     @staticmethod

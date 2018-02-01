@@ -29,7 +29,7 @@ class CrawlerPipeline(object):
                 finishing_position TEXT, bracket TEXT, horse_number TEXT, horse TEXT, sex_age TEXT,
                 jockey_weight TEXT, jockey TEXT, run_time TEXT, margin TEXT, corner_position TEXT,
                 run_time_last_600 TEXT, win_odds TEXT, win_fav TEXT, horse_weight TEXT,
-                trainer TEXT, breeder TEXT, prize TEXT,
+                trainer TEXT, owner TEXT, prize TEXT,
                 PRIMARY KEY (run_date, place, race, title, horse)
             );
         ''')
@@ -86,7 +86,7 @@ class CrawlerPipeline(object):
                 INSERT OR IGNORE INTO race_record 
                 (run_date, place, race, title, type, track, distance, weather, condition, time, 
                  finishing_position, bracket, horse_number, horse, sex_age, jockey_weight, jockey, run_time, margin,
-                 corner_position, run_time_last_600, win_odds, win_fav, horse_weight, trainer, breeder, prize
+                 corner_position, run_time_last_600, win_odds, win_fav, horse_weight, trainer, owner, prize
                 ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (item.get('run_date', 'null'), item.get('place', 'null'), item.get('race', 'null'),
                       item.get('title', 'null'), item.get('type', 'null'), item.get('track', 'null'),
@@ -97,7 +97,7 @@ class CrawlerPipeline(object):
                       item.get('margin', 'null'), item.get('corner_position', 'null'),
                       item.get('run_time_last_600', 'null'), item.get('win_odds', 'null'),
                       item.get('win_fav', 'null'), item.get('horse_weight', 'null'), item.get('trainer', 'null'),
-                      item.get('breeder', 'null'), item.get('prize', 'null'))
+                      item.get('owner', 'null'), item.get('prize', 'null'))
             )
         elif isinstance(item, HorseRecord):
             self.cursor.execute('''
