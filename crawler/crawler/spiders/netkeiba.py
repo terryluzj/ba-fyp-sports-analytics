@@ -62,7 +62,7 @@ class NetKeibaCrawler(scrapy.Spider):
         '障害初勝利日': 'first_obs_win_date', '障害初勝利馬': 'first_obs_win_horse'
     }
 
-    START_DATE = '2018-01-08'
+    START_DATE = '2000-01-08'
 
     def __init__(self, *args, **kwargs):
         # Get faculty link for each university
