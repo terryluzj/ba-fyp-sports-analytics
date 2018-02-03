@@ -1,7 +1,7 @@
 # BA-BT4101-Sports-Analytics
 
 ## References
-**Rと競馬データで学ぶ統計学:** http://dokoka.org/
+**http://dokoka.org/**
 
 **Athlytics: Data Mining and Machine Learning for Sports Analytics:** http://www.pitt.edu/~kpele/kdd2017-tutorial.html
 
