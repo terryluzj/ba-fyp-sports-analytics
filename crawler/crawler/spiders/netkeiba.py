@@ -326,24 +326,24 @@ class NetKeibaCrawler(scrapy.Spider):
                 if self.is_duplicate(link_request):
                     continue
                 curr_record.update({'url_requested': link_request})
-                if 'horse' in link:
+                if '/horse/' in link:
                     # SQL INSERT statement, separated from yield statement
                     self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
                                            values (?, ?, ?, ?)''', (link_request, 0, 'Horse Record', str(curr_record)))
                     self.connection.commit()
-                elif 'jockey' in link:
+                elif '/jockey/' in link:
                     # SQL INSERT statement, separated from yield statement
                     self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
                                            values (?, ?, ?, ?)''', (link_request, 0, 'Jockey Record',
                                                                     str(curr_record)))
                     self.connection.commit()
-                elif 'owner' in link:
+                elif '/owner/' in link:
                     # SQL INSERT statement, separated from yield statement
                     self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
                                            values (?, ?, ?, ?)''', (link_request, 0, 'Owner Record',
                                                                     str(curr_record)))
                     self.connection.commit()
-                elif 'trainer' in link:
+                elif '/trainer/' in link:
                     # SQL INSERT statement, separated from yield statement
                     self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
                                            values (?, ?, ?, ?)''', (link_request, 0, 'Trainer Record',
