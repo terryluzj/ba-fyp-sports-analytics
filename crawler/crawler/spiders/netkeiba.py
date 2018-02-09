@@ -141,8 +141,6 @@ class NetKeibaCrawler(scrapy.Spider):
             link_list = self.cursor.execute('SELECT * FROM crawl_history WHERE parsed = 0').fetchall()
             for record in link_list:
                 link_request = record[0]
-                if self.is_duplicate(link_request):
-                    continue
                 parse_level = record[2]
                 meta_data = eval(record[3])
                 callback_method = None
