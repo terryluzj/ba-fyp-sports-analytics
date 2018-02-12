@@ -3,7 +3,7 @@
 ## References
 **http://dokoka.org/**
 
-**Athlytics: Data Mining and Machine Learning for Sports Analytics:** http://www.pitt.edu/~kpele/kdd2017-tutorial.html
+**http://www.pitt.edu/~kpele/kdd2017-tutorial.html**
 
 ## Data Sources:
 
