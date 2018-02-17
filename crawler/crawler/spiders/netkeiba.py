@@ -514,7 +514,7 @@ class NetKeibaCrawler(scrapy.Spider):
             f.close()
 
         # Get table content and basic information
-        breeder_id = list(filter(lambda x: len(x) > 0, response.url.split('/')))[-1]
+        breeder_id = self.get_url_id(response.url)
         row_data = self.get_table_rows(response)[1][2:]
         breeder_name = response.meta['breeder_name']
         for row_element in row_data:
@@ -536,7 +536,7 @@ class NetKeibaCrawler(scrapy.Spider):
             f.close()
 
         # Get table content and basic information
-        owner_id = list(filter(lambda x: len(x) > 0, response.url.split('/')))[-1]
+        owner_id = self.get_url_id(response.url)
         row_data = self.get_table_rows(response)[1][2:]
         owner_name = response.meta['record']['owner']
         for row_element in row_data:
@@ -757,6 +757,6 @@ class NetKeibaCrawler(scrapy.Spider):
     @staticmethod
     def get_url_id(url):
         try:
-            return re.search(r'/(\d+)/?', url).group(1)
+            return list(filter(lambda x: len(x) > 0, url.split('/')))[-1]
         except AttributeError:
             return hashlib.sha224(str.encode(url)).hexdigest()
