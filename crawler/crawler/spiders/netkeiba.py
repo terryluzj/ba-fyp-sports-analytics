@@ -409,7 +409,7 @@ class NetKeibaCrawler(scrapy.Spider):
     '''
 
     def parse_horse(self, response):
-        self.logger.info('Parsing horse %s' % response.url)
+        # self.logger.info('Parsing horse %s' % response.url)
         self.links[response.meta['url_requested']] = True
         with open(self.links_append_path, 'a') as f:
             f.write(response.meta['url_requested'] + '\n')
@@ -507,7 +507,7 @@ class NetKeibaCrawler(scrapy.Spider):
         self.connection.commit()
 
     def parse_breeder(self, response):
-        self.logger.info('Parsing breeder %s' % response.url)
+        # self.logger.info('Parsing breeder %s' % response.url)
         self.links[response.meta['url_requested']] = True
         with open(self.links_append_path, 'a') as f:
             f.write(response.meta['url_requested'] + '\n')
@@ -529,7 +529,7 @@ class NetKeibaCrawler(scrapy.Spider):
         self.connection.commit()
 
     def parse_owner(self, response):
-        self.logger.info('Parsing owner %s' % response.url)
+        # self.logger.info('Parsing owner %s' % response.url)
         self.links[response.meta['url_requested']] = True
         with open(self.links_append_path, 'a') as f:
             f.write(response.meta['url_requested'] + '\n')
@@ -551,7 +551,7 @@ class NetKeibaCrawler(scrapy.Spider):
         self.connection.commit()
 
     def parse_jockey(self, response):
-        self.logger.info('Parsing jockey %s' % response.url)
+        # self.logger.info('Parsing jockey %s' % response.url)
         self.links[response.meta['url_requested']] = True
         with open(self.links_append_path, 'a') as f:
             f.write(response.meta['url_requested'] + '\n')
@@ -594,7 +594,7 @@ class NetKeibaCrawler(scrapy.Spider):
         self.connection.commit()
 
     def parse_trainer(self, response):
-        self.logger.info('Parsing trainer %s' % response.url)
+        # self.logger.info('Parsing trainer %s' % response.url)
         self.links[response.meta['url_requested']] = True
         with open(self.links_append_path, 'a') as f:
             f.write(response.meta['url_requested'] + '\n')
@@ -637,7 +637,7 @@ class NetKeibaCrawler(scrapy.Spider):
         self.connection.commit()
 
     def parse_jockey_profile(self, response):
-        self.logger.info('Parsing jockey profile %s' % response.url)
+        # self.logger.info('Parsing jockey profile %s' % response.url)
         self.links[response.meta['url_requested']] = True
         with open(self.links_append_path, 'a') as f:
             f.write(response.meta['url_requested'] + '\n')
@@ -671,7 +671,7 @@ class NetKeibaCrawler(scrapy.Spider):
         self.connection.commit()
 
     def parse_trainer_profile(self, response):
-        self.logger.info('Parsing trainer profile %s' % response.url)
+        # self.logger.info('Parsing trainer profile %s' % response.url)
         self.links[response.meta['url_requested']] = True
         with open(self.links_append_path, 'a') as f:
             f.write(response.meta['url_requested'] + '\n')
