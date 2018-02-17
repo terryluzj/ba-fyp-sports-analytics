@@ -152,7 +152,7 @@ class CrawlerPipeline(object):
         elif isinstance(item, JockeyProfile):
             self.cursor.execute('''
                 INSERT OR IGNORE INTO jockey_profile
-                (jocker_id, jockey_name, date_of_birth, place_of_birth, blood_type, height, weight, first_flat_run_date, 
+                (jockey_id, jockey_name, date_of_birth, place_of_birth, blood_type, height, weight, first_flat_run_date, 
                  first_flat_run_horse, first_flat_win_date, first_flat_win_horse, first_obs_run_date, 
                  first_obs_run_horse, first_obs_win_date, first_obs_win_horse
                 ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
