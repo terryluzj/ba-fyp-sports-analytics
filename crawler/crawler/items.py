@@ -47,6 +47,7 @@ class RaceRecord(Item):
 
 class HorseRecord(Item):
     # Detailed Information
+    horse_id = Field(output_processor=TakeFirst())
     horse_name = Field(output_processor=TakeFirst())
     date_of_birth = Field(output_processor=TakeFirst())
     trainer = Field(output_processor=TakeFirst())
@@ -72,6 +73,7 @@ class HorseRecord(Item):
 
 class IndividualRecord(Item):
     # Basic Information
+    individual_id = Field(output_processor=TakeFirst())
     individual_type = Field(output_processor=TakeFirst())
     name = Field(output_processor=TakeFirst())
     year = Field(output_processor=TakeFirst())
@@ -101,6 +103,7 @@ class IndividualRecord(Item):
 
 
 class TrainerProfile(Item):
+    trainer_id = Field(output_processor=TakeFirst())
     trainer_name = Field(output_processor=TakeFirst())
     date_of_birth = Field(output_processor=TakeFirst())
     place_of_birth = Field(output_processor=TakeFirst())
@@ -114,6 +117,7 @@ class TrainerProfile(Item):
 
 
 class JockeyProfile(Item):
+    jockey_id = Field(output_processor=TakeFirst())
     jockey_name = Field(output_processor=TakeFirst())
     date_of_birth = Field(output_processor=TakeFirst())
     place_of_birth = Field(output_processor=TakeFirst())

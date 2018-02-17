@@ -1,5 +1,7 @@
 import datetime
+import hashlib
 import os
+import re
 import scrapy
 import sqlite3
 from lxml import html
@@ -371,6 +373,7 @@ class NetKeibaCrawler(scrapy.Spider):
         self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'],))
         self.connection.commit()
 
+    '''
     def parse_horse_breed(self, response):
         # Intermediary step for parent horse information crawling
         self.logger.info('Parsing parent %s' % response.url)
@@ -387,8 +390,8 @@ class NetKeibaCrawler(scrapy.Spider):
             new_meta = response.meta.copy()
             new_meta['url_requested'] = response.urljoin(link)
             # SQL INSERT statement, separated from yield statement
-            self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
-                                   values (?, ?, ?, ?)''',
+            self.cursor.execute('INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data)' + \
+                                 values (?, ?, ?, ?)',
                                 (response.urljoin(link), 0, 'Horse Record', str(new_meta)))
             self.connection.commit()
 
@@ -403,6 +406,7 @@ class NetKeibaCrawler(scrapy.Spider):
         # SQL DELETE statement
         self.cursor.execute('DELETE FROM crawl_history WHERE link = ?', (response.meta['url_requested'],))
         self.connection.commit()
+    '''
 
     def parse_horse(self, response):
         self.logger.info('Parsing horse %s' % response.url)
@@ -436,7 +440,9 @@ class NetKeibaCrawler(scrapy.Spider):
         parent = list(map(lambda text: html.fromstring(text), response.xpath('//td[@rowspan="2"]').extract()))
         parent = {' '.join(element.xpath('//text()[normalize-space(.)]')): '-' if len(element.xpath('//a/@href')) <= 0
                   else element.xpath('//a/@href')[0] for element in parent}
-        profile_dict.update({'parents': ' '.join(list(parent.keys()))})
+        parent = {key: '/horse/%s/' % self.get_url_id(value) for key, value in parent.items()}
+        profile_dict.update({'parents': ' '.join(list(map(lambda x: self.get_url_id(x), parent.values()))),
+                             'horse_id': self.get_url_id(response.url)})
 
         # Yield item of horse record
         horse_record = HorseRecord(profile_dict)
@@ -480,7 +486,7 @@ class NetKeibaCrawler(scrapy.Spider):
                 # SQL INSERT statement, separated from yield statement
                 self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
                                        values (?, ?, ?, ?)''',
-                                    (link_request, 0, 'Parent Intermediate Step', str(new_meta)))
+                                    (link_request, 0, 'Horse Record', str(new_meta)))
                 self.connection.commit()
 
             for key, value in parent.items():
@@ -493,7 +499,7 @@ class NetKeibaCrawler(scrapy.Spider):
                 new_meta['depth'] = response.meta['depth']
                 new_meta['parent'] = True
                 new_meta['url_requested'] = link_request
-                yield response.follow(value, callback=self.parse_horse_breed, meta=new_meta,
+                yield response.follow(value, callback=self.parse_horse, meta=new_meta,
                                       errback=self.errback_handling)
 
         # SQL DELETE statement
@@ -508,11 +514,13 @@ class NetKeibaCrawler(scrapy.Spider):
             f.close()
 
         # Get table content and basic information
+        breeder_id = list(filter(lambda x: len(x) > 0, response.url.split('/')))[-1]
         row_data = self.get_table_rows(response)[1][2:]
         breeder_name = response.meta['breeder_name']
         for row_element in row_data:
             # Yield item of breeder record
             breeder_record = dict(zip(NetKeibaCrawler.INDIVIDUAL_COLUMNS, [u'生産者', breeder_name] + row_element))
+            breeder_record['individual_id'] = breeder_id
             breeder_record = IndividualRecord(breeder_record)
             yield breeder_record
 
@@ -528,11 +536,13 @@ class NetKeibaCrawler(scrapy.Spider):
             f.close()
 
         # Get table content and basic information
+        owner_id = list(filter(lambda x: len(x) > 0, response.url.split('/')))[-1]
         row_data = self.get_table_rows(response)[1][2:]
         owner_name = response.meta['record']['owner']
         for row_element in row_data:
             # Yield item of owner record
             owner_record = dict(zip(NetKeibaCrawler.INDIVIDUAL_COLUMNS, [u'馬主', owner_name] + row_element))
+            owner_record['individual_id'] = owner_id
             owner_record = IndividualRecord(owner_record)
             yield owner_record
 
@@ -634,13 +644,15 @@ class NetKeibaCrawler(scrapy.Spider):
             f.close()
 
         # Get profile information
+        jockey_id = self.get_url_id(response.url)
         profile_info = self.get_profile_table(response)
         profile_info = {key if key not in NetKeibaCrawler.JOCKEY_COLUMNS.keys() else
                         NetKeibaCrawler.JOCKEY_COLUMNS[key]: value for key, value in profile_info.items()}
         profile_info.update(
             {
                 'jockey_name': response.meta['jockey_name'],
-                'date_of_birth': response.meta['basic_info']
+                'date_of_birth': response.meta['basic_info'],
+                'jockey_id': jockey_id
             }
         )
 
@@ -650,6 +662,7 @@ class NetKeibaCrawler(scrapy.Spider):
         for row_element in response.meta['row_data']:
             jockey_record = dict(zip(NetKeibaCrawler.INDIVIDUAL_COLUMNS,
                                      [u'騎手', response.meta['jockey_name']] + row_element))
+            jockey_record['individual_id'] = jockey_id
             jockey_record = IndividualRecord(jockey_record)
             yield jockey_record
 
@@ -665,13 +678,15 @@ class NetKeibaCrawler(scrapy.Spider):
             f.close()
 
         # Get profile information
+        trainer_id = self.get_url_id(response.url)
         profile_info = self.get_profile_table(response)
         profile_info = {key if key not in NetKeibaCrawler.TRAINER_COLUMNS.keys()
                         else NetKeibaCrawler.TRAINER_COLUMNS[key]: value for key, value in profile_info.items()}
         profile_info.update(
             {
                 'trainer_name': response.meta['trainer_name'],
-                'date_of_birth': response.meta['basic_info']
+                'date_of_birth': response.meta['basic_info'],
+                'trainer_id': trainer_id
             }
         )
 
@@ -681,6 +696,7 @@ class NetKeibaCrawler(scrapy.Spider):
         for row_element in response.meta['row_data']:
             trainer_record = dict(zip(NetKeibaCrawler.INDIVIDUAL_COLUMNS,
                                       [u'調教師', response.meta['trainer_name']] + row_element))
+            trainer_record['individual_id'] = trainer_id
             trainer_record = IndividualRecord(trainer_record)
             yield trainer_record
 
@@ -737,3 +753,10 @@ class NetKeibaCrawler(scrapy.Spider):
             return NetKeibaCrawler.HORSE_COLUMNS[original_string]
         except KeyError:
             return original_string
+
+    @staticmethod
+    def get_url_id(url):
+        try:
+            return re.search(r'/(\d+)/?', url).group(1)
+        except AttributeError:
+            return hashlib.sha224(str.encode(url)).hexdigest()

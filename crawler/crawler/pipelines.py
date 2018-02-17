@@ -38,7 +38,7 @@ class CrawlerPipeline(object):
         self.cursor.execute('''        
             CREATE TABLE IF NOT EXISTS horse_record
             (
-                horse_name TEXT PRIMARY KEY,
+                horse_id TEXT PRIMARY KEY, horse_name TEXT,
                 date_of_birth DATETIME, trainer TEXT, owner TEXT, breeder TEXT, place_of_birth TEXT, 
                 transaction_price TEXT, prize_obtained TEXT, race_record TEXT, highlight_race TEXT,
                 relatives TEXT, parents TEXT, status TEXT, gender TEXT, breed TEXT, offer_info TEXT
@@ -49,12 +49,13 @@ class CrawlerPipeline(object):
         self.cursor.execute('''        
             CREATE TABLE IF NOT EXISTS individual_record
             (
-                individual_type TEXT, name TEXT , year TEXT, rank TEXT, first TEXT, second TEXT, third TEXT, out TEXT,
+                individual_id TEXT, individual_type TEXT, name TEXT , year TEXT, rank TEXT, 
+                first TEXT, second TEXT, third TEXT, out TEXT,
                 races_major TEXT, wins_major TEXT, races_special TEXT, wins_special TEXT,
                 races_flat TEXT, wins_flat TEXT, races_grass TEXT, wins_grass TEXT, races_dirt TEXT, wins_dirt TEXT,
                 wins_percent TEXT, wins_percent_2nd TEXT, wins_percent_3rd TEXT,
                 prize_obtained TEXT, representative_horse TEXT,
-                PRIMARY KEY (name, year)
+                PRIMARY KEY (individual_id, year)
             );
         ''')
 
@@ -62,7 +63,7 @@ class CrawlerPipeline(object):
         self.cursor.execute('''        
             CREATE TABLE IF NOT EXISTS trainer_profile
             (
-                trainer_name TEXT PRIMARY KEY, date_of_birth TEXT, place_of_birth TEXT,
+                trainer_id TEXT PRIMARY KEY, trainer_name TEXT, date_of_birth TEXT, place_of_birth TEXT,
                 first_run_date TEXT, first_run_horse TEXT, first_win_date TEXT, first_win_horse TEXT
             );
         ''')
@@ -71,7 +72,7 @@ class CrawlerPipeline(object):
         self.cursor.execute('''        
             CREATE TABLE IF NOT EXISTS jockey_profile
             (
-                jockey_name TEXT PRIMARY KEY, date_of_birth TEXT, place_of_birth TEXT, blood_type TEXT,
+                jockey_id TEXT PRIMARY KEY, jockey_name TEXT, date_of_birth TEXT, place_of_birth TEXT, blood_type TEXT,
                 height TEXT, weight TEXT,
                 first_flat_run_date TEXT, first_flat_run_horse TEXT, 
                 first_flat_win_date TEXT, first_flat_win_horse TEXT,
@@ -102,12 +103,13 @@ class CrawlerPipeline(object):
         elif isinstance(item, HorseRecord):
             self.cursor.execute('''
                 INSERT OR IGNORE INTO horse_record 
-                (horse_name, date_of_birth, trainer, owner, breeder, place_of_birth, 
+                (horse_id, horse_name, date_of_birth, trainer, owner, breeder, place_of_birth, 
                  transaction_price, prize_obtained, race_record, highlight_race, relatives, parents,
                  status, gender, breed, 
                  offer_info
-                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (item.get('horse_name', 'null'), item.get('date_of_birth', 'null'), item.get('trainer', 'null'),
+                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (item.get('horse_id', 'null'), item.get('horse_name', 'null'), item.get('date_of_birth', 'null'),
+                      item.get('trainer', 'null'),
                       item.get('owner', 'null'), item.get('breeder', 'null'), item.get('place_of_birth', 'null'),
                       item.get('transaction_price', 'null'), item.get('prize_obtained', 'null'),
                       item.get('race_record', 'null'), item.get('highlight_race', 'null'),
@@ -118,11 +120,13 @@ class CrawlerPipeline(object):
         elif isinstance(item, IndividualRecord):
             self.cursor.execute('''
                 INSERT OR IGNORE INTO individual_record 
-                (individual_type, name, year, rank, first, second, third, out, races_major, wins_major, races_special, 
+                (individual_id, individual_type, name, year, rank, first, second, third, out, races_major, wins_major, 
+                 races_special, 
                  wins_special, races_flat, wins_flat, races_grass, wins_grass, races_dirt, wins_dirt, wins_percent, 
                  wins_percent_2nd, wins_percent_3rd, prize_obtained, representative_horse
-                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (item.get('individual_type', 'null'), item.get('name', 'null'), item.get('year', 'null'),
+                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (item.get('individual_id', 'null'), item.get('individual_type', 'null'), item.get('name', 'null'),
+                      item.get('year', 'null'),
                       item.get('rank', 'null'), item.get('first', 'null'), item.get('second', 'null'),
                       item.get('third', 'null'), item.get('out', 'null'), item.get('races_major', 'null'),
                       item.get('wins_major', 'null'), item.get('races_special', 'null'),
@@ -135,10 +139,12 @@ class CrawlerPipeline(object):
         elif isinstance(item, TrainerProfile):
             self.cursor.execute('''
                 INSERT OR IGNORE INTO trainer_profile
-                (trainer_name, date_of_birth, place_of_birth, first_run_date, first_run_horse, first_win_date, 
+                (trainer_id, trainer_name, date_of_birth, place_of_birth, first_run_date, first_run_horse, 
+                 first_win_date, 
                  first_win_horse
-                ) values (?, ?, ?, ?, ?, ?, ?)
-                ''', (item.get('trainer_name', 'null'), item.get('date_of_birth', 'null'),
+                ) values (?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (item.get('trainer_id', 'null'), item.get('trainer_name', 'null'),
+                      item.get('date_of_birth', 'null'),
                       item.get('place_of_birth', 'null'), item.get('first_run_date', 'null'),
                       item.get('first_run_horse', 'null'), item.get('first_win_date', 'null'),
                       item.get('first_win_horse', 'null'))
@@ -146,11 +152,11 @@ class CrawlerPipeline(object):
         elif isinstance(item, JockeyProfile):
             self.cursor.execute('''
                 INSERT OR IGNORE INTO jockey_profile
-                (jockey_name, date_of_birth, place_of_birth, blood_type, height, weight, first_flat_run_date, 
+                (jocker_id, jockey_name, date_of_birth, place_of_birth, blood_type, height, weight, first_flat_run_date, 
                  first_flat_run_horse, first_flat_win_date, first_flat_win_horse, first_obs_run_date, 
                  first_obs_run_horse, first_obs_win_date, first_obs_win_horse
-                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (item.get('jockey_name', 'null'), item.get('date_of_birth', 'null'),
+                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (item.get('jockey_id', 'null'), item.get('jockey_name', 'null'), item.get('date_of_birth', 'null'),
                       item.get('place_of_birth', 'null'), item.get('blood_type', 'null'),
                       item.get('height', 'null'), item.get('weight', 'null'), item.get('first_flat_run_date', 'null'),
                       item.get('first_flat_run_horse', 'null'), item.get('first_flat_win_date', 'null'),
