@@ -319,6 +319,22 @@ class NetKeibaCrawler(scrapy.Spider):
             # Yield next-level request for horse, jockey, owner and trainer
             for link in sorted(link_element):
                 link_request = response.urljoin(link)
+                if '/horse/' in link:
+                    record.update({
+                        'horse_id': self.get_url_id(link)
+                    })
+                elif '/jockey/' in link:
+                    record.update({
+                        'jockey_id': self.get_url_id(link)
+                    })
+                elif '/owner/' in link:
+                    record.update({
+                        'owner_id': self.get_url_id(link)
+                    })
+                elif '/trainer/' in link:
+                    record.update({
+                        'trainer_id': self.get_url_id(link)
+                    })
                 if self.is_duplicate(link_request):
                     continue
                 curr_record.update({'url_requested': link_request})
@@ -327,36 +343,24 @@ class NetKeibaCrawler(scrapy.Spider):
                     self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
                                            values (?, ?, ?, ?)''', (link_request, 0, 'Horse Record', str(curr_record)))
                     self.connection.commit()
-                    record.update({
-                        'horse_id': self.get_url_id(link)
-                    })
                 elif '/jockey/' in link:
                     # SQL INSERT statement, separated from yield statement
                     self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
                                            values (?, ?, ?, ?)''', (link_request, 0, 'Jockey Record',
                                                                     str(curr_record)))
                     self.connection.commit()
-                    record.update({
-                        'jockey_id': self.get_url_id(link)
-                    })
                 elif '/owner/' in link:
                     # SQL INSERT statement, separated from yield statement
                     self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
                                            values (?, ?, ?, ?)''', (link_request, 0, 'Owner Record',
                                                                     str(curr_record)))
                     self.connection.commit()
-                    record.update({
-                        'owner_id': self.get_url_id(link)
-                    })
                 elif '/trainer/' in link:
                     # SQL INSERT statement, separated from yield statement
                     self.cursor.execute('''INSERT OR IGNORE INTO crawl_history (link, parsed, parse_level, meta_data) 
                                            values (?, ?, ?, ?)''', (link_request, 0, 'Trainer Record',
                                                                     str(curr_record)))
                     self.connection.commit()
-                    record.update({
-                        'trainer_id': self.get_url_id(link)
-                    })
 
             # Yield item of race record
             race_record = RaceRecord(record)
