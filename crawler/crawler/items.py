@@ -41,6 +41,12 @@ class RaceRecord(Item):
     owner = Field(output_processor=TakeFirst())
     prize = Field(output_processor=TakeFirst())
 
+    # Individual Related
+    horse_id = Field(output_processor=TakeFirst())
+    jockey_id = Field(output_processor=TakeFirst())
+    owner_id = Field(output_processor=TakeFirst())
+    trainer_id = Field(output_processor=TakeFirst())
+
     def __repr__(self):
         return repr({'title': self['title']})
 
