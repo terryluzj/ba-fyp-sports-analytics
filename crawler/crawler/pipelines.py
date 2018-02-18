@@ -90,7 +90,7 @@ class CrawlerPipeline(object):
                  finishing_position, bracket, horse_number, horse, sex_age, jockey_weight, jockey, run_time, margin,
                  corner_position, run_time_last_600, win_odds, win_fav, horse_weight, trainer, owner, prize, 
                  horse_id, jockey_id, owner_id, trainer_id
-                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (item.get('run_date', 'null'), item.get('place', 'null'), item.get('race', 'null'),
                       item.get('title', 'null'), item.get('type', 'null'), item.get('track', 'null'),
                       item.get('distance', 'null'), item.get('weather', 'null'), item.get('condition', 'null'),
