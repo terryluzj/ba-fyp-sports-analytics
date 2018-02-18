@@ -281,7 +281,7 @@ class NetKeibaCrawler(scrapy.Spider):
         row_data = table_content[1]
         row_data = list(map(lambda row: dict(zip(row_data[0], row)), row_data[1:]))
         row_link = list(map(lambda content: list(map(lambda anchor: anchor.attrib['href'],
-                                                     content.xpath('//td//a[@href]'))), row_content))
+                                                     content.xpath('//td//a[@href]'))), row_content))[1:]
 
         # Iterate through each row element
         for row_element, link_element in zip(row_data, row_link):
@@ -368,16 +368,16 @@ class NetKeibaCrawler(scrapy.Spider):
                     # self.logger.info('Found and filtered duplicate %s' % link_request)
                     continue
                 curr_record.update({'url_requested': link_request})
-                if 'horse' in link:
+                if '/horse/' in link:
                     yield response.follow(link, callback=self.parse_horse, meta=curr_record,
                                           errback=self.errback_handling)
-                elif 'jockey' in link:
+                elif '/jockey/' in link:
                     yield response.follow(self.format_link(link, 'result'),
                                           callback=self.parse_jockey, meta=curr_record, errback=self.errback_handling)
-                elif 'owner' in link:
+                elif '/owner/' in link:
                     yield response.follow(self.format_link(link, 'result'), callback=self.parse_owner, meta=curr_record,
                                           errback=self.errback_handling)
-                elif 'trainer' in link:
+                elif '/trainer/' in link:
                     yield response.follow(self.format_link(link, 'result'),
                                           callback=self.parse_trainer, meta=curr_record, errback=self.errback_handling)
 
@@ -586,7 +586,8 @@ class NetKeibaCrawler(scrapy.Spider):
             'row_data': row_data,
             'jockey_name': jockey_name,
             'basic_info': basic_info,
-            'url_requested': profile_link
+            'url_requested': profile_link,
+            'record': response.meta['record']
         }
 
         if self.is_duplicate(profile_link):
@@ -629,7 +630,8 @@ class NetKeibaCrawler(scrapy.Spider):
             'row_data': row_data,
             'trainer_name': trainer_name,
             'basic_info': basic_info,
-            'url_requested': profile_link
+            'url_requested': profile_link,
+            'record': response.meta['record']
         }
 
         if self.is_duplicate(profile_link):
