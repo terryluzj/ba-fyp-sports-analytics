@@ -30,7 +30,7 @@ class CrawlerPipeline(object):
                 jockey_weight TEXT, jockey TEXT, run_time TEXT, margin TEXT, corner_position TEXT,
                 run_time_last_600 TEXT, win_odds TEXT, win_fav TEXT, horse_weight TEXT,
                 trainer TEXT, owner TEXT, prize TEXT,
-                horse_id TEXT, jockey_id TEXT, owner_id TEXT, trainer_id TEXT
+                horse_id TEXT, jockey_id TEXT, owner_id TEXT, trainer_id TEXT,
                 PRIMARY KEY (run_date, place, race, title, horse_id)
             );
         ''')
