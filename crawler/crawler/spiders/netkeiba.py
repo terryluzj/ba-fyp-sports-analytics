@@ -432,7 +432,10 @@ class NetKeibaCrawler(scrapy.Spider):
             f.close()
 
         # Extract basic information
-        basic_info = response.xpath('//p[@class="txt_01"]/text()').extract_first().split(u'\u3000')
+        try:
+            basic_info = response.xpath('//p[@class="txt_01"]/text()').extract_first().split(u'\u3000')
+        except AttributeError:
+            basic_info = ['-'] * 3
         if len(basic_info) == 2:
             basic_info = ['-'] + basic_info
         elif len(basic_info) == 1:
