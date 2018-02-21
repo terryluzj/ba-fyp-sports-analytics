@@ -111,7 +111,7 @@ class CrawlerPipeline(object):
                  transaction_price, prize_obtained, race_record, highlight_race, relatives, parents,
                  status, gender, breed, 
                  offer_info, breeder_id
-                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (item.get('horse_id', 'null'), item.get('horse_name', 'null'), item.get('date_of_birth', 'null'),
                       item.get('trainer', 'null'),
                       item.get('owner', 'null'), item.get('breeder', 'null'), item.get('place_of_birth', 'null'),

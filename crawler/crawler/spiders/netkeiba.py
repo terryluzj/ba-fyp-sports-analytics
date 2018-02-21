@@ -465,7 +465,7 @@ class NetKeibaCrawler(scrapy.Spider):
 
         # Get breeder information
         breeder_link = response.xpath('//a[@href[contains(., "/breeder/")]]/@href').extract_first()
-        breeder_id = self.get_url_id(breeder_link)
+        breeder_id = 'null' if breeder_link is None else self.get_url_id(breeder_link)
         profile_dict['breeder_id'] = breeder_id
 
         # Yield item of horse record
