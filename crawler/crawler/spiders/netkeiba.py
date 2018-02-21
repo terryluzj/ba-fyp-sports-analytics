@@ -463,12 +463,16 @@ class NetKeibaCrawler(scrapy.Spider):
         profile_dict.update({'parents': ' '.join(list(map(lambda x: self.get_url_id(x), parent.values()))),
                              'horse_id': response.meta['record']['horse_id']})
 
+        # Get breeder information
+        breeder_link = response.xpath('//a[@href[contains(., "/breeder/")]]/@href').extract_first()
+        breeder_id = self.get_url_id(breeder_link)
+        profile_dict['breeder_id'] = breeder_id
+
         # Yield item of horse record
         horse_record = HorseRecord(profile_dict)
         yield horse_record
 
         # Extract breeder information
-        breeder_link = response.xpath('//a[@href[contains(., "breeder/")]]/@href').extract_first()
         breeder_meta = response.meta.copy()
         breeder_meta['breeder_name'] = profile_dict[u'breeder']
         if breeder_link is not None:
