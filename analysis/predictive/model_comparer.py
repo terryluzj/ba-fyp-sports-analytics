@@ -34,6 +34,7 @@ class ModelComparer(object):
         self.model_dict = {}
         self.models = []
         self.train_predictions = {}
+        self.meta_models = {}
         
     def add_model(self, model_method, model_name, **params):
         
@@ -63,6 +64,11 @@ class ModelComparer(object):
             print('Performing analysis on column %s for model %s (Size: %s)' %
                   (y_col_name, model_name, str(X_train.shape)), end='\r', flush=True)
             model.fit(X_train, y_train)
+            if 'meta' in model_name.lower():
+                if model_name not in self.meta_models.keys():
+                    self.meta_models[model_name] = {}
+                self.meta_models[model_name][y_col_name] = model
+
             y_pred = model.predict(X_test)
 
             if y_col_name not in self.train_predictions.keys():
@@ -110,6 +116,20 @@ class ModelComparer(object):
             return reindex_df
         except IndexError:
             return
+
+    def get_meta_models(self):
+        return list(self.meta_models.keys())
+
+    def get_meta_report(self):
+        new_dict = {}
+        for meta_model_name in self.meta_models.keys():
+            for key, value in self.meta_models[meta_model_name].items():
+                feature_importance = value.meta_regr_.feature_importances_
+                regressors = list(map(lambda x: re.search(r'(\w+)\(', repr(x)).group(1), value.regr_))
+                final_dict = dict(zip(regressors, feature_importance))
+                final_dict.update({'model_name': meta_model_name})
+                new_dict.update(({key: final_dict}))
+        return pd.DataFrame(new_dict).T
     
     @staticmethod
     def get_rmse(y_true, y_pred):
