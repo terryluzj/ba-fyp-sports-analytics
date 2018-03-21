@@ -75,7 +75,7 @@ def get_trainer_jockey_profile(df, individual):
     assert individual in ['trainer', 'jockey']
     if individual == 'trainer':
         merge_df = trainer_df
-    elif individual == 'jockey':
+    else:
         merge_df = jockey_df
     df = df.merge(merge_df[['%s_id' % individual, 'date_of_birth', 'place_of_birth']], 
                   on='%s_id' % individual, suffixes=['', '_%s' % individual])
