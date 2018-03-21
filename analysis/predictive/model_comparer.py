@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import re
 
 from feature_engineering import feature_engineer
 from sklearn.model_selection import train_test_split
@@ -10,12 +11,23 @@ class ModelComparer(object):
     # Helper class to incorporate different regression models
     run_time_col_name = 'run_time_1000'
     
-    def __init__(self, X_df, y_df, original_y_df_dict, **kwargs):
+    def __init__(self, X_df, y_df, original_y_df_dict, random_split=False, ratio=0.7, **kwargs):
 
         self.X = feature_engineer(X_df.reset_index())
         self.y = y_df[y_df.index.isin(self.X.index)]
         self.y_original = original_y_df_dict
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.3, **kwargs)
+        if random_split:
+            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y,
+                                                                                    test_size=1-ratio, **kwargs)
+        else:
+            print('Split training and testing set by date range with 0.7 ratio:')
+            split_index = int(self.X.shape[0] * ratio)
+            self.X_train = self.X.iloc[:split_index]
+            print('Training set date range: %s -> %s' % (self.X_train.index[0][1], self.X_train.index[-1][1]))
+            self.X_test = self.X.iloc[split_index:]
+            print('Testing set date range: %s -> %s' % (self.X_test.index[0][1], self.X_test.index[-1][1]))
+            self.y_train = self.y[self.y.index.isin(self.X_train.index)]
+            self.y_test = self.y[self.y.index.isin(self.X_test.index)]
 
         self.run_time_series = self.y[self.run_time_col_name]
 
@@ -93,7 +105,9 @@ class ModelComparer(object):
     def get_report(self, filter_word=''):
         try:
             df = pd.DataFrame.from_dict(self.model_dict)
-            return df.loc[list(filter(lambda x: filter_word in x, df.index))].sort_values(df.columns[0])
+            return_df = df.loc[list(filter(lambda x: filter_word in x, df.index))]
+            reindex_df = return_df.reindex(index=sorted(return_df.index, reverse=True, key=lambda x: rank_index(x)))
+            return reindex_df
         except IndexError:
             return
     
@@ -105,3 +119,12 @@ class ModelComparer(object):
     @staticmethod
     def get_r_squared(y_true, y_pred):
         return 1 - np.sum((y_true - y_pred) ** 2) / np.sum((y_true - np.mean(y_true)) ** 2)
+
+
+def rank_index(index_string):
+    # Rank index for better interpretation
+    shape_number = int(re.search(r'\((\d+)\)', index_string).group(1))
+    if 'original' in index_string.lower():
+        return shape_number + 1
+    else:
+        return shape_number
