@@ -1,14 +1,14 @@
-import numpy as np
 import os
 import pandas as pd
 import re
 
-columns_to_drop = [
-    'race', 'title', 'horse', 'sex_age',
-    'distance', 'run_time', 'breeder',
-    'jockey', 'margin', 'trainer_x', 'trainer_y', 'owner_x', 'owner_y', 'horse_name', 'date_of_birth', 
-    'transaction_price', 'prize_obtained', 'race_record', 'highlight_race', 'relatives', 'status', 'prize'
-]
+columns_to_drop = ['race', 'title', 'horse', 'sex_age',
+                   'distance', 'run_time', 'breeder',
+                   'jockey', 'margin', 'trainer_x', 'trainer_y', 'owner_x', 'owner_y', 'horse_name', 'date_of_birth',
+                   'transaction_price', 'prize_obtained', 'race_record', 'highlight_race', 'relatives', 'status',
+                   'prize']
+dummy_cols = ['place', 'type', 'track', 'weather', 'condition', 'gender', 'breed', 'bracket', 'horse_number',
+              'time', 'place_of_birth_jockey', 'place_of_birth_trainer', 'place_of_birth']
 
 file_directory = os.path.abspath(os.path.join(os.path.dirname(os.getcwd()), '')) + '\\'
 race_df = pd.read_csv(file_directory + 'data/race.csv', low_memory=False, index_col=0)
@@ -20,13 +20,14 @@ jockey_df = pd.read_csv(file_directory + 'data/jockey.csv', low_memory=False, in
 horse_df['race_record'] = horse_df['race_record'].apply(lambda x: re.search(r'\[\ (.+)\ \]', x).group(1))
 horse_df['race_record'] = horse_df['race_record'].apply(lambda x: list(map(lambda y: int(y), x.split('-'))))
 
-def drop_cols(df):
 
+def drop_cols(df):
     for column in columns_to_drop:
         try:
             df.drop(column, axis=1, inplace=True)
         except ValueError:
             continue
+
 
 def cast_individual_id(id_value):
     # Convert id value to the correct form
@@ -34,25 +35,28 @@ def cast_individual_id(id_value):
         return int(id_value)
     except ValueError:
         return id_value
-    
+
+
 def get_rank_series(rank_series, interval=100):
     # Convert rank series to fit as a dummy variable
-    def convert_rank(rank, interval):
+    def convert_rank(rank, rank_interval):
         if rank == 0:
             return 'No Data'
         else:
-            if rank // interval == 0:
+            if rank // rank_interval == 0:
                 if rank <= 50:
                     return '1-50'
                 else:
                     return '51-99'
             else:
-                return '%s-%s' % (int(rank // interval * 100), int(rank // interval * 100 + 100 - 1))
-    return rank_series.apply(lambda x: convert_rank(x, interval=interval))
-    
+                return '%s-%s' % (int(rank // rank_interval * 100), int(rank // rank_interval * 100 + 100 - 1))
+    return rank_series.apply(lambda x: convert_rank(x, rank_interval=interval))
+
+
 def get_dummies_order_by_count(df, column_name):
     # Get dummies by descending count order
     return pd.get_dummies(df[column_name]).reindex(df[column_name].value_counts().index, axis=1).iloc[:, :-1]
+
 
 def parse_time_stamp(time_string):
     # Parse timestamp expressed in hours
@@ -60,11 +64,12 @@ def parse_time_stamp(time_string):
     hour = int(time_split[0])
     if hour < 12:
         return '10-12'
-    elif hour > 12 and hour < 15:
+    elif hour < 15:
         return '12-15'
     else:
         return '15-after'
-    
+
+
 def get_trainer_jockey_profile(df, individual):
     # Merge with trainer/jockey dataframe
     assert individual in ['trainer', 'jockey']
@@ -79,13 +84,14 @@ def get_trainer_jockey_profile(df, individual):
     df['%s_age' % individual] = df['run_date'].subtract(df['date_of_birth']).dt.days / 365.0
     df.drop(['date_of_birth'], axis=1, inplace=True)
     top_10_place = df['place_of_birth_%s' % individual].value_counts().index[:10]
-    df['place_of_birth_%s' % individual] = df['place_of_birth_%s' % individual].apply(lambda x: x if x in top_10_place \
-                                                                                      else 'Others')
+    df['place_of_birth_%s' % individual] = df['place_of_birth_%s' %
+                                              individual].apply(lambda x: x if x in top_10_place else 'Others')
     return df
 
-def feature_engineer(race_df, dummy=True, drop_columns=True):
+
+def feature_engineer(df, dummy=True, drop_columns=True):
     
-    new_df = race_df.copy()
+    new_df = df.copy()
 
     # Feature engineering
     has_horse_weight = new_df['horse_weight'].apply(lambda x: bool(re.search(r'(\d+)\(.+\)', x)))
@@ -119,8 +125,7 @@ def feature_engineer(race_df, dummy=True, drop_columns=True):
         new_df[col_name] = new_df[col_name].apply(lambda x: cast_individual_id(x))
 
     for col in individual_column:
-        new_df = new_df[new_df[col].isin(individual_df.loc[individual_df['individual_type'] == eng_jap_dict[col.split('_')[0]] ,
-                                                           'individual_id'])]
+        new_df = new_df[new_df[col].isin(individual_df.loc[individual_df['individual_type'] == eng_jap_dict[col.split('_')[0]], 'individual_id'])]
 
     for col in individual_column:
         filtered = individual_df[individual_df['individual_type'] == eng_jap_dict[col.split('_')[0]]]
@@ -141,11 +146,8 @@ def feature_engineer(race_df, dummy=True, drop_columns=True):
 
     # Get dummy columns
     if dummy:
-        dummied_cols = ['place', 'type', 'track', 'weather', 'condition', 'gender', 'breed', 'bracket', 'horse_number', 
-                        'time', 'place_of_birth_jockey', 'place_of_birth_trainer', 'place_of_birth']
-        for cols in dummied_cols:
-            new_df = new_df.join(get_dummies_order_by_count(new_df, 
-                                                           cols).rename(columns=lambda x: '-'.join([cols, str(x)])))
+        for cols in dummy_cols:
+            new_df = new_df.join(get_dummies_order_by_count(new_df, cols).rename(columns=lambda x: '-'.join([cols, str(x)])))
             try:
                 new_df.drop(cols, axis=1, inplace=True)
             except ValueError:
@@ -163,9 +165,9 @@ def feature_engineer(race_df, dummy=True, drop_columns=True):
                 continue
 
     for object_col in new_df.dtypes[new_df.dtypes == 'object'].index:
-    	try:
-    		new_df[object_col] = new_df[object_col].astype(float)
-    	except ValueError:
-    		new_df[object_col] = new_df[object_col].apply(lambda x: x if type(x) is int else float(x.replace(',', '')))
+        try:
+            new_df[object_col] = new_df[object_col].astype(float)
+        except ValueError:
+            new_df[object_col] = new_df[object_col].apply(lambda x: x if type(x) is int else float(x.replace(',', '')))
     
     return new_df.sort_values(['horse_id', 'run_date']).set_index(['horse_id', 'run_date'])
