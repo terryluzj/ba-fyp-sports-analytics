@@ -20,14 +20,17 @@ class ModelComparer(object):
             self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y,
                                                                                     test_size=1-ratio, **kwargs)
         else:
-            print('Split training and testing set by date range with 0.7 ratio:')
+            print('Split training and testing set by date range with %s ratio:' % ratio)
             split_index = int(self.X.shape[0] * ratio)
-            self.X_train = self.X.iloc[:split_index]
+            self.X = self.X.reset_index().sort_values('run_date')
+            self.X_train = self.X.iloc[:split_index].set_index(['horse_id', 'run_date'])
             print('Training set date range: %s -> %s' % (self.X_train.index[0][1], self.X_train.index[-1][1]))
-            self.X_test = self.X.iloc[split_index:]
+            self.X_test = self.X.iloc[split_index:].set_index(['horse_id', 'run_date'])
             print('Testing set date range: %s -> %s' % (self.X_test.index[0][1], self.X_test.index[-1][1]))
             self.y_train = self.y[self.y.index.isin(self.X_train.index)]
             self.y_test = self.y[self.y.index.isin(self.X_test.index)]
+
+        self.sorted_cols = list(sorted(self.y.columns, key=lambda x: len(x)))
 
         self.run_time_series = self.y[self.run_time_col_name]
 
@@ -41,7 +44,7 @@ class ModelComparer(object):
         self.model_dict[model_name] = {}
         self.models.append(model_method)
         
-        for y_col_name in sorted(self.y.columns, key=lambda x: len(x)):
+        for y_col_name in self.sorted_cols:
 
             model = model_method(**params)
             self.model_dict[model_name]['Model Spec'] = repr(model)
@@ -60,9 +63,9 @@ class ModelComparer(object):
                 scaler.fit(X_train)
                 X_train = pd.DataFrame(scaler.transform(X_train), index=X_train.index)
                 X_test = pd.DataFrame(scaler.transform(X_test), index=X_test.index)
-            
-            print('Performing analysis on column %s for model %s (Size: %s)' %
-                  (y_col_name, model_name, str(X_train.shape)), end='\r', flush=True)
+
+            print('%s: Performing analysis on column %s for model %s (Size: %s)' %
+                  (self.get_progress(y_col_name), y_col_name, model_name, str(X_train.shape)), end='\r', flush=True)
             model.fit(X_train, y_train)
             if 'meta' in model_name.lower():
                 if model_name not in self.meta_models.keys():
@@ -130,6 +133,12 @@ class ModelComparer(object):
                 final_dict.update({'model_name': meta_model_name})
                 new_dict.update(({key: final_dict}))
         return pd.DataFrame(new_dict).T
+
+    def get_progress(self, element):
+        return '[' + \
+               '>' * (self.sorted_cols.index(element) + 1) + \
+               '-' * (len(self.sorted_cols) - self.sorted_cols.index(element) - 1) + \
+               ']'
     
     @staticmethod
     def get_rmse(y_true, y_pred):
