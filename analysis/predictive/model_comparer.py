@@ -11,7 +11,7 @@ class ModelComparer(object):
     # Helper class to incorporate different regression models
     run_time_col_name = 'run_time_1000'
     
-    def __init__(self, X_df, y_df, original_y_df_dict, random_split=False, ratio=0.7, **kwargs):
+    def __init__(self, X_df, y_df, original_y_df_dict, random_split=False, ratio=0.7, drop_last=True, **kwargs):
 
         self.X = feature_engineer(X_df.reset_index())
         self.y = y_df[y_df.index.isin(self.X.index)]
@@ -29,6 +29,7 @@ class ModelComparer(object):
             print('Testing set date range: %s -> %s' % (self.X_test.index[0][1], self.X_test.index[-1][1]))
             self.y_train = self.y[self.y.index.isin(self.X_train.index)]
             self.y_test = self.y[self.y.index.isin(self.X_test.index)]
+            self.X = self.X.set_index(['horse_id', 'run_date'])
 
         self.sorted_cols = list(sorted(self.y.columns, key=lambda x: len(x)))
 
@@ -38,6 +39,8 @@ class ModelComparer(object):
         self.models = []
         self.train_predictions = {}
         self.meta_models = {}
+
+        self.drop_last = drop_last
         
     def add_model(self, model_method, model_name, **params):
         
@@ -50,14 +53,18 @@ class ModelComparer(object):
             self.model_dict[model_name]['Model Spec'] = repr(model)
             
             # Uncomment the following lines to observe DV prediction without last run time info
-            # if y_col_name not in self.run_time_col_name:
-            # X_train.drop('last_run_time', axis=1, inplace=True)
-            # X_test.drop('last_run_time', axis=1, inplace=True)
+            if self.drop_last and y_col_name != self.run_time_col_name:
+                X_train = self.X_train.drop('last_run_time', axis=1)
+                X_test = self.X_test.drop('last_run_time', axis=1)
+            else:
+                X_train = self.X_train
+                X_test = self.X_test
                 
             y_train = self.y_train[y_col_name].dropna()
             y_test = self.y_test[y_col_name].dropna()
-            X_train = self.X_train[self.X_train.index.isin(y_train.index)]
-            X_test = self.X_test[self.X_test.index.isin(y_test.index)]
+            X_train = X_train[X_train.index.isin(y_train.index)]
+            X_test = X_test[X_test.index.isin(y_test.index)]
+            
             if 'normalized' in model_name.lower():
                 scaler = StandardScaler()
                 scaler.fit(X_train)
