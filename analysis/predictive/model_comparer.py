@@ -13,7 +13,7 @@ class ModelComparer(object):
     
     def __init__(self, X_df, y_df, original_y_df_dict, random_split=False, ratio=0.7, drop_last=True, **kwargs):
 
-        self.X = feature_engineer(X_df.reset_index())
+        self.X = feature_engineer(df=X_df.reset_index(), df_name='df_combined_all')
         self.y = y_df[y_df.index.isin(self.X.index)]
         self.y_original = original_y_df_dict
         if random_split:
