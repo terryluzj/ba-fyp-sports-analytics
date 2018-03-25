@@ -5,15 +5,16 @@ import re
 from feature_engineering import feature_engineer
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import explained_variance_score
 
 
 class ModelComparer(object):
     # Helper class to incorporate different regression models
     run_time_col_name = 'run_time_1000'
     
-    def __init__(self, X_df, y_df, original_y_df_dict, random_split=False, ratio=0.7, drop_last=True, **kwargs):
+    def __init__(self, X_df, y_df, original_y_df_dict, sampled=False, random_split=False, ratio=0.7, drop_last=True, **kwargs):
 
-        self.X = feature_engineer(df=X_df.reset_index(), df_name='df_combined_all')
+        self.X = feature_engineer(df=X_df.reset_index(), df_name='df_combined_all' if not sampled else 'df_sampled')
         self.y = y_df[y_df.index.isin(self.X.index)]
         self.y_original = original_y_df_dict
         if random_split:
@@ -154,7 +155,7 @@ class ModelComparer(object):
     
     @staticmethod
     def get_r_squared(y_true, y_pred):
-        return 1 - np.sum((y_true - y_pred) ** 2) / np.sum((y_true - np.mean(y_true)) ** 2)
+        return explained_variance_score(y_pred=y_pred, y_true=y_true)
 
 
 def rank_index(index_string):
