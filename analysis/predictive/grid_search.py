@@ -8,7 +8,7 @@ file_directory = os.path.abspath(os.path.join(os.path.dirname(os.getcwd()), ''))
 report_directory = file_directory + 'predictive/report/'
 
 
-def get_best_model(model_comparer, name_saved, model_method, tuned_params, scoring, randomized=False, n_iter=30,
+def get_best_model(model_comparer, name_saved, model_method, tuned_params, scoring, randomized=False, n_iter=50,
                    filter_func=None, verbose=2, n_jobs=1, **params):
     # Get the best model from grid search
     try:
