@@ -84,8 +84,7 @@ class ModelComparer(object):
 
             if y_col_name not in self.train_predictions.keys():
                 self.train_predictions[y_col_name] = {}
-            self.train_predictions[y_col_name][model_name] = self.get_transformed(y_col_name, model.predict(X_train),
-                                                                                  X_train)[0]
+            # self.train_predictions[y_col_name][model_name] = self.get_transformed(y_col_name, model.predict(X_train), X_train)[0]
             
             if y_col_name != self.run_time_col_name:
                 transformed = self.get_transformed(y_col_name, y_pred, X_test)
@@ -135,7 +134,10 @@ class ModelComparer(object):
         new_dict = {}
         for meta_model_name in self.meta_models.keys():
             for key, value in self.meta_models[meta_model_name].items():
-                feature_importance = value.meta_regr_.feature_importances_
+                try:
+                    feature_importance = value.meta_regr_.feature_importances_
+                except AttributeError:
+                    feature_importance = value.meta_regr_.coef_
                 regressors = list(map(lambda x: re.search(r'(\w+)\(', repr(x)).group(1), value.regr_))
                 final_dict = dict(zip(regressors, feature_importance))
                 final_dict.update({'model_name': meta_model_name})
