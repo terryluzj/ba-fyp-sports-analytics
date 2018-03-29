@@ -14,6 +14,7 @@ def get_best_model(model_comparer, name_saved, model_method, tuned_params, scori
     try:
         best_df = pd.read_csv(report_directory + '%s_grid_search_report.csv' % name_saved, index_col=0)
     except FileNotFoundError:
+        # Call the grid search function if no report is found
         best_df = start_grid_search(model_comparer=model_comparer, model_method=model_method,
                                     tuned_params=tuned_params, n_jobs=n_jobs, randomized=randomized, n_iter=n_iter,
                                     filter_func=filter_func, scoring=scoring, name_to_save=name_saved, verbose=verbose,
@@ -29,6 +30,7 @@ def start_grid_search(model_comparer, model_method, tuned_params, name_to_save, 
     column_names = model_comparer.y_train.columns if filter_func is None else list(filter(filter_func,
                                                                                           model_comparer.y_train.columns))
     for col_name in column_names:
+        # Start grid search by column names
         if not randomized:
             grid_search = GridSearchCV(model_method(**params), tuned_params, cv=cv,
                                        scoring=scoring, n_jobs=n_jobs, verbose=verbose)
@@ -43,6 +45,8 @@ def start_grid_search(model_comparer, model_method, tuned_params, name_to_save, 
             'best_params': grid_search.best_params_,
             'best_scores': grid_search.best_score_
         }
+
+    # Get grid search report and save it as csv file
     best_df = pd.DataFrame(best_dict)
     file_name = '%s_grid_search_report.csv' % name_to_save
     print('Report file saved as %s' % file_name)

@@ -22,6 +22,7 @@ horse_df['race_record'] = horse_df['race_record'].apply(lambda x: list(map(lambd
 
 
 def drop_cols(df):
+    # Drop the columns in a dataframe
     for column in columns_to_drop:
         try:
             df.drop(column, axis=1, inplace=True)
