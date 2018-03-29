@@ -36,9 +36,8 @@ class ModelComparer(object):
 
         self.run_time_series = self.y[self.run_time_col_name]
 
-        self.model_dict = {}
         self.models = []
-        self.train_predictions = {}
+        self.model_dict = {}
         self.meta_models = {}
 
         self.drop_last = drop_last
@@ -46,11 +45,11 @@ class ModelComparer(object):
     def add_model(self, model_method, model_name, **params):
         
         self.model_dict[model_name] = {}
-        self.models.append(model_method)
         
         for y_col_name in self.sorted_cols:
 
             model = model_method(**params)
+            self.models.append(model)
             self.model_dict[model_name]['Model Spec'] = repr(model)
             
             # Uncomment the following lines to observe DV prediction without last run time info
@@ -82,10 +81,6 @@ class ModelComparer(object):
 
             y_pred = model.predict(X_test)
 
-            if y_col_name not in self.train_predictions.keys():
-                self.train_predictions[y_col_name] = {}
-            # self.train_predictions[y_col_name][model_name] = self.get_transformed(y_col_name, model.predict(X_train), X_train)[0]
-            
             if y_col_name != self.run_time_col_name:
                 transformed = self.get_transformed(y_col_name, y_pred, X_test)
                 y_pred = transformed[0]
