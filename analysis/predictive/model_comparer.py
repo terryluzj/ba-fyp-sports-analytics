@@ -26,7 +26,8 @@ class ModelComparer(object):
         '''
 
         # Get feature engineered dataframe
-        self.X = feature_engineer(df=X_df.reset_index(), df_name='df_combined_all' if not sampled else 'df_sampled')
+        self.X, self.y_rank = feature_engineer(df=X_df.reset_index(),
+                                               df_name='df_combined_all' if not sampled else 'df_sampled')
         self.y = y_df[y_df.index.isin(self.X.index)]
         self.y_original = original_y_df_dict
 

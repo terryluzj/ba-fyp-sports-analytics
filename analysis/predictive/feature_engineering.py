@@ -95,7 +95,8 @@ def feature_engineer(df, df_name, dummy=True, drop_columns=True):
     try:
         new_df = pd.read_csv(file_directory + 'data/feature_engineered/%s.csv' % df_name, low_memory=False, index_col=0)
         new_df['run_date'] = new_df['run_date'].apply(lambda x: pd.Timestamp(x))
-        return new_df.set_index(['horse_id', 'run_date'])
+        new_df = new_df.set_index(['horse_id', 'run_date'])
+        return new_df.drop('finishing_position', axis=1), new_df['finishing_position']
     except FileNotFoundError:
     
         new_df = df.copy()
@@ -161,7 +162,7 @@ def feature_engineer(df, df_name, dummy=True, drop_columns=True):
                     continue
 
         # Drop some other columns
-        columns_to_drop_again = ['finishing_position', 'corner_position', 'run_time_last_600',
+        columns_to_drop_again = ['corner_position', 'run_time_last_600',
                                  'jockey_id', 'owner_id', 'trainer_id', 'breeder_id',
                                  'parents', 'age_int']
         if drop_columns:
@@ -179,4 +180,6 @@ def feature_engineer(df, df_name, dummy=True, drop_columns=True):
 
         new_df = new_df.sort_values(['horse_id', 'run_date'])
         new_df.to_csv(file_directory + 'data/feature_engineered/%s.csv' % df_name, encoding='utf-8')
-        return new_df.set_index(['horse_id', 'run_date'])
+        new_df = new_df.set_index(['horse_id', 'run_date'])
+
+        return new_df.drop('finishing_position', axis=1), new_df['finishing_position']
