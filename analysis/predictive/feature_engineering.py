@@ -1,6 +1,7 @@
-import os
 import pandas as pd
 import re
+
+from analysis.predictive.settings import DATA_DIRECTORY, DATA_DIRECTORY_FEATURE_ENGINEERED
 
 columns_to_drop = ['race', 'title', 'horse', 'sex_age',
                    'distance', 'run_time', 'breeder',
@@ -10,13 +11,11 @@ columns_to_drop = ['race', 'title', 'horse', 'sex_age',
 dummy_cols = ['place', 'type', 'track', 'weather', 'condition', 'gender', 'breed', 'bracket', 'horse_number',
               'time', 'place_of_birth_jockey', 'place_of_birth_trainer', 'place_of_birth']
 
-file_directory = os.path.abspath(os.path.join(os.path.dirname(os.getcwd()), '')) + '\\'
-race_df = pd.read_csv(file_directory + 'data/race.csv', low_memory=False, index_col=0)
-horse_df = pd.read_csv(file_directory + 'data/horse.csv', low_memory=False, index_col=0)
-individual_df = pd.read_csv(file_directory + 'data/individual.csv', low_memory=False, index_col=0)
-trainer_df = pd.read_csv(file_directory + 'data/trainer.csv', low_memory=False, index_col=0)
-jockey_df = pd.read_csv(file_directory + 'data/jockey.csv', low_memory=False, index_col=0)
-
+race_df = pd.read_csv(DATA_DIRECTORY + 'race.csv', low_memory=False, index_col=0)
+horse_df = pd.read_csv(DATA_DIRECTORY + 'horse.csv', low_memory=False, index_col=0)
+individual_df = pd.read_csv(DATA_DIRECTORY + 'individual.csv', low_memory=False, index_col=0)
+trainer_df = pd.read_csv(DATA_DIRECTORY + 'trainer.csv', low_memory=False, index_col=0)
+jockey_df = pd.read_csv(DATA_DIRECTORY + 'jockey.csv', low_memory=False, index_col=0)
 horse_df['race_record'] = horse_df['race_record'].apply(lambda x: re.search(r'\[\ (.+)\ \]', x).group(1))
 horse_df['race_record'] = horse_df['race_record'].apply(lambda x: list(map(lambda y: int(y), x.split('-'))))
 
@@ -93,7 +92,7 @@ def get_trainer_jockey_profile(df, individual):
 def feature_engineer(df, df_name, dummy=True, drop_columns=True):
 
     try:
-        new_df = pd.read_csv(file_directory + 'data/feature_engineered/%s.csv' % df_name, low_memory=False, index_col=0)
+        new_df = pd.read_csv(DATA_DIRECTORY_FEATURE_ENGINEERED + '%s.csv' % df_name, low_memory=False, index_col=0)
         new_df['run_date'] = new_df['run_date'].apply(lambda x: pd.Timestamp(x))
         new_df = new_df.set_index(['horse_id', 'run_date'])
         return new_df.drop('finishing_position', axis=1), new_df['finishing_position']
@@ -179,7 +178,7 @@ def feature_engineer(df, df_name, dummy=True, drop_columns=True):
                 new_df[object_col] = new_df[object_col].apply(lambda x: x if type(x) is int else float(x.replace(',', '')))
 
         new_df = new_df.sort_values(['horse_id', 'run_date'])
-        new_df.to_csv(file_directory + 'data/feature_engineered/%s.csv' % df_name, encoding='utf-8')
+        new_df.to_csv(DATA_DIRECTORY_FEATURE_ENGINEERED + '%s.csv' % df_name, encoding='utf-8')
         new_df = new_df.set_index(['horse_id', 'run_date'])
 
         return new_df.drop('finishing_position', axis=1), new_df['finishing_position']

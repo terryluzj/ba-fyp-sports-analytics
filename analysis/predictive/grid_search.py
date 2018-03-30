@@ -1,18 +1,15 @@
 import numpy as np
-import os
 import pandas as pd
 
+from analysis.predictive.settings import REPORT_DIRECTORY
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
-
-file_directory = os.path.abspath(os.path.join(os.path.dirname(os.getcwd()), '')) + '\\'
-report_directory = file_directory + 'predictive/report/'
 
 
 def get_best_model(model_comparer, name_saved, model_method, tuned_params, scoring, randomized=False, n_iter=50,
                    filter_func=None, verbose=2, n_jobs=1, **params):
     # Get the best model from grid search
     try:
-        best_df = pd.read_csv(report_directory + '%s_grid_search_report.csv' % name_saved, index_col=0)
+        best_df = pd.read_csv(REPORT_DIRECTORY + '%s_grid_search_report.csv' % name_saved, index_col=0)
     except FileNotFoundError:
         # Call the grid search function if no report is found
         best_df = start_grid_search(model_comparer=model_comparer, model_method=model_method,
@@ -50,7 +47,7 @@ def start_grid_search(model_comparer, model_method, tuned_params, name_to_save, 
     best_df = pd.DataFrame(best_dict)
     file_name = '%s_grid_search_report.csv' % name_to_save
     print('Report file saved as %s' % file_name)
-    best_df.to_csv(report_directory + file_name)
+    best_df.to_csv(REPORT_DIRECTORY + file_name)
     return best_df
 
 

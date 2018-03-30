@@ -1,9 +1,7 @@
-import os
 import pandas as pd
 import re
 
-file_directory = os.path.abspath(os.path.join(os.path.dirname(os.getcwd()), '')) + '\\'
-pred_file_directory = '{}predictive\\predictions\\'.format(file_directory)
+from analysis.predictive.settings import PRED_FILE_DIRECTORY
 
 
 def get_pred_values(mc, prefix, is_meta, original_df_combined):
@@ -11,7 +9,7 @@ def get_pred_values(mc, prefix, is_meta, original_df_combined):
     min_date = mc.X_train.reset_index()['run_date'].max()
     pred_dict = {}
     for col in mc.sorted_cols:
-        file_name = '{}{}{}/{}.csv'.format(pred_file_directory, 'meta_' if is_meta else '', prefix, col)
+        file_name = '{}{}{}/{}.csv'.format(PRED_FILE_DIRECTORY, 'meta_' if is_meta else '', prefix, col)
         print('{}: Reading and transforming prediction file named {}/{}.csv'.format(mc.get_progress(col), prefix, col),
               end='\r', flush=True)
         pred_df = pd.read_csv(file_name)
@@ -28,7 +26,7 @@ def store_values(mc, prefix):
     print('Storing prediction files...')
     for key in sorted(mc.predictions.keys()):
         pred_value = pd.DataFrame(mc.predictions[key], index=mc.X_test.index)
-        pred_value.to_csv('{}{}/{}.csv'.format(pred_file_directory, prefix, key))
+        pred_value.to_csv('{}{}/{}.csv'.format(PRED_FILE_DIRECTORY, prefix, key))
 
     # Store trained meta-features of stacking models
     print('Storing meta-model trained features files...')
@@ -38,4 +36,4 @@ def store_values(mc, prefix):
             curr_index = mc.X_train[mc.X_train.index.isin(mc.y_train[col].dropna().index)].index
             regressors = list(map(lambda x: re.search(r'(\w+)\(', repr(x)).group(1), curr_meta.regr_))
             curr_df = pd.DataFrame(curr_meta.train_meta_features_, index=curr_index, columns=regressors)
-            curr_df.to_csv('{}meta_{}/{}.csv'.format(pred_file_directory, prefix, col))
+            curr_df.to_csv('{}meta_{}/{}.csv'.format(PRED_FILE_DIRECTORY, prefix, col))

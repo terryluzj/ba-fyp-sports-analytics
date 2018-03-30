@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import re
 
-from feature_engineering import feature_engineer
+from analysis.predictive.feature_engineering import feature_engineer
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import explained_variance_score
