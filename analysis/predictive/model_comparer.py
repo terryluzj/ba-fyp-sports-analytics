@@ -12,10 +12,10 @@ class ModelComparer(object):
     # Helper class to incorporate different regression models
     run_time_col_name = 'run_time_1000'
     
-    def __init__(self, X_df, y_df, original_y_df_dict,
-                 sampled=False, random_split=False, ratio=0.7, drop_last=True, **kwargs):
+    def __init__(self, x_df, y_df, original_y_df_dict,
+                 sampled=False, random_split=False, ratio=0.85, drop_last=True, **kwargs):
         """
-        :param X_df: pandas dataframe of independent variables of the dataset
+        :param x_df: pandas dataframe of independent variables of the dataset
         :param y_df: pandas dataframe dependent variables of the dataset
         :param original_y_df_dict: dictionary mapping back column values
         :param sampled: boolean value indicating the dataframe is sampled or not
@@ -26,8 +26,8 @@ class ModelComparer(object):
         """
 
         # Get feature engineered dataframe
-        self.X, self.y_rank = feature_engineer(df=X_df.reset_index(),
-                                               df_name='df_combined_all' if not sampled else 'df_sampled')
+        self.X, self.y_rank = feature_engineer(df=x_df.reset_index(),
+                                               df_name='model_featured' if not sampled else 'model_featured_sampled')
         self.y = y_df[y_df.index.isin(self.X.index)]
         self.y_original = original_y_df_dict
 
@@ -40,9 +40,10 @@ class ModelComparer(object):
             print('Split training and testing set by date range with %s ratio:' % ratio)
             split_index = int(self.X.shape[0] * ratio)
             self.X = self.X.reset_index().sort_values('run_date')
-            self.X_train = self.X.iloc[:split_index].set_index(['horse_id', 'run_date'])
+            last_date = self.X.iloc[split_index]['run_date']
+            self.X_train = self.X.loc[self.X['run_date'] < last_date].set_index(['horse_id', 'run_date'])
             print('Training set date range: %s -> %s' % (self.X_train.index[0][1], self.X_train.index[-1][1]))
-            self.X_test = self.X.iloc[split_index:].set_index(['horse_id', 'run_date'])
+            self.X_test = self.X.loc[self.X['run_date'] >= last_date].set_index(['horse_id', 'run_date'])
             print('Testing set date range: %s -> %s' % (self.X_test.index[0][1], self.X_test.index[-1][1]))
 
             # Set training and testing prediction values accordingly
