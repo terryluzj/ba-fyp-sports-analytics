@@ -14,7 +14,7 @@ class ModelComparer(object):
     
     def __init__(self, X_df, y_df, original_y_df_dict,
                  sampled=False, random_split=False, ratio=0.7, drop_last=True, **kwargs):
-        '''
+        """
         :param X_df: pandas dataframe of independent variables of the dataset
         :param y_df: pandas dataframe dependent variables of the dataset
         :param original_y_df_dict: dictionary mapping back column values
@@ -23,7 +23,7 @@ class ModelComparer(object):
         :param ratio: float value between 0 and 1 to indicate sampling ratio
         :param drop_last: boolean value indicating last running time information to be dropped
         :param kwargs: kwargs for train_test_split
-        '''
+        """
 
         # Get feature engineered dataframe
         self.X, self.y_rank = feature_engineer(df=X_df.reset_index(),
@@ -64,40 +64,43 @@ class ModelComparer(object):
         self.drop_last = drop_last
         
     def add_model(self, model_method, model_name, **params):
-        
+
+        # Initiate model dict
         self.model_dict[model_name] = {}
-        
+
+        # Iterate through each element name and do model training
         for y_col_name in self.sorted_cols:
-            # Iterate through each element name and do model training
+            # Initiate new model to refit the training data
             model = model_method(**params)
             self.models.append(model)
             self.model_dict[model_name]['Model Spec'] = repr(model)
             
             # Uncomment the following lines to observe DV prediction without last run time info
             if self.drop_last and y_col_name != self.run_time_col_name:
-                X_train = self.X_train.drop('last_run_time', axis=1)
-                X_test = self.X_test.drop('last_run_time', axis=1)
+                x_train = self.X_train.drop('last_run_time', axis=1)
+                x_test = self.X_test.drop('last_run_time', axis=1)
             else:
-                X_train = self.X_train
-                X_test = self.X_test
+                x_train = self.X_train
+                x_test = self.X_test
 
             # Get rows without missing values only
             y_train = self.y_train[y_col_name].dropna()
             y_test = self.y_test[y_col_name].dropna()
-            X_train = X_train[X_train.index.isin(y_train.index)]
-            X_test = X_test[X_test.index.isin(y_test.index)]
+            x_train = x_train[x_train.index.isin(y_train.index)]
+            x_test = x_test[x_test.index.isin(y_test.index)]
             
             if 'normalized' in model_name.lower():
                 # Normalize the dataset when specified in model name as 'normalized'
                 scaler = StandardScaler()
-                scaler.fit(X_train)
-                X_train = pd.DataFrame(scaler.transform(X_train), index=X_train.index)
-                X_test = pd.DataFrame(scaler.transform(X_test), index=X_test.index)
+                scaler.fit(x_train)
+                x_train = pd.DataFrame(scaler.transform(x_train), index=x_train.index)
+                x_test = pd.DataFrame(scaler.transform(x_test), index=x_test.index)
 
-            # Fit the model
+            # Print progress and fit the model
             print('%s: Performing analysis on column %s for model %s (Size: %s)' %
-                  (self.get_progress(y_col_name), y_col_name, model_name, str(X_train.shape)), end='\r', flush=True)
-            model.fit(X_train, y_train)
+                  (self.get_progress(y_col_name), y_col_name, model_name, str(x_train.shape)),
+                  end='\r', flush=True)
+            model.fit(x_train, y_train)
 
             # Add model information for stacking model as well
             if 'meta' in model_name.lower():
@@ -106,40 +109,52 @@ class ModelComparer(object):
                 self.meta_models[model_name][y_col_name] = model
 
             # Get prediction of testing date and evaluate
-            y_pred = model.predict(X_test)
+            y_pred = model.predict(x_test)
             if y_col_name != self.run_time_col_name:
                 # Transform accordingly by quotient or difference
-                transformed = self.get_transformed(y_col_name, y_pred, X_test)
+                transformed = self.get_transformed(y_col_name, y_pred, x_test)
                 y_pred = transformed[0]
                 run_time = transformed[1]
-                self.model_dict[model_name]['Transformed RMSE: %s (%s)' %
-                                            (y_col_name, X_train.shape[0])] = '%.6f' % \
-                                                                              self.get_rmse(y_pred, run_time)
-                self.model_dict[model_name]['Transformed R^2: %s (%s)' %
-                                            (y_col_name, X_train.shape[0])] = '%.3f' % \
-                                                                              self.get_r_squared(y_pred, run_time)
+
+                # Get performance score and indexing for report dataframe
+                rmse = self.get_rmse(y_pred, run_time)
+                r_squared = self.get_r_squared(y_pred, run_time)
+                rmse_col = 'Transformed RMSE: %s (%s)' % (y_col_name, x_train.shape[0])
+                r_squared_col = 'Transformed R^2: %s (%s)' % (y_col_name, x_train.shape[0])
+
+                # Set index values
+                self.model_dict[model_name][rmse_col] = '%.6f' % rmse
+                self.model_dict[model_name][r_squared_col] = '%.3f' % r_squared
             else:
-                self.model_dict[model_name]['Original RMSE: %s (%s)' %
-                                            (y_col_name, X_train.shape[0])] = '%.6f' % \
-                                                                              self.get_rmse(y_pred, y_test)
-                self.model_dict[model_name]['Original R^2: %s (%s)' %
-                                            (y_col_name, X_train.shape[0])] = '%.3f' % \
-                                                                              self.get_r_squared(y_pred, y_test)
+                # Get performance score and indexing for report dataframe
+                rmse = self.get_rmse(y_pred, y_test)
+                r_squared = self.get_r_squared(y_pred, y_test)
+                rmse_col = 'Original RMSE: %s (%s)' % (y_col_name, x_train.shape[0])
+                r_squared_col = 'Original R^2: %s (%s)' % (y_col_name, x_train.shape[0])
+
+                # Set index values
+                self.model_dict[model_name][rmse_col] = '%.6f' % rmse
+                self.model_dict[model_name][r_squared_col] = '%.3f' % r_squared
 
             # Store predictions for future use
             if y_col_name not in self.predictions.keys():
                 self.predictions[y_col_name] = {}
             self.predictions[y_col_name][model_name] = y_pred
 
+        # Print current progress
         print('\n' + ('Added model named %s ' % model_name))
 
     def get_transformed(self, y_col, pred, df):
         # Transform the predicted value by quotient or difference
         pred = pd.Series(pred, index=df.index)
+
+        # Benchmark with original run time series
         run_time = self.run_time_series[self.run_time_series.index.isin(pred.index)]
         if y_col != self.run_time_col_name:
             series = self.y_original[y_col]
             series = series[series.index.isin(pred.index)]
+
+            # Get original values from predictions
             if 'quo' in y_col:
                 pred = pred * series
             elif 'diff' in y_col:
@@ -149,6 +164,8 @@ class ModelComparer(object):
         return pred, run_time
         
     def get_report(self, filter_word=''):
+        # Generate performance report
+
         def rank_index(index_string):
             # Rank index for better interpretation
             shape_number = int(re.search(r'\((\d+)\)', index_string).group(1))
@@ -156,6 +173,7 @@ class ModelComparer(object):
                 return shape_number + 1
             else:
                 return shape_number
+
         # Return the performance report as a dataframe
         try:
             df = pd.DataFrame.from_dict(self.model_dict)
@@ -170,14 +188,19 @@ class ModelComparer(object):
         new_dict = {}
         for meta_model_name in self.meta_models.keys():
             for key, value in self.meta_models[meta_model_name].items():
+                # Get feature importance or coefficients
                 try:
                     feature_importance = value.meta_regr_.feature_importances_
                 except AttributeError:
                     feature_importance = value.meta_regr_.coef_
+
+                # Create column names for meta report
                 regressors = list(map(lambda x: re.search(r'(\w+)\(', repr(x)).group(1), value.regr_))
                 final_dict = dict(zip(regressors, feature_importance))
                 final_dict.update({'model_name': meta_model_name})
                 new_dict.update(({key: final_dict}))
+
+        # Return transposed dataframe of meta report
         return pd.DataFrame(new_dict).T
 
     def get_meta_models(self):

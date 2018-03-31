@@ -1,7 +1,7 @@
 import os
 
 # File path related
-FILE_DIRECTORY = '{}\\'.format(os.path.abspath(os.path.join(os.path.dirname(os.getcwd()), '')))
+FILE_DIRECTORY = '{}\\'.format(os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')))
 
 REPORT_DIRECTORY = '{}{}\\'.format(FILE_DIRECTORY, 'predictive\\report')
 PRED_FILE_DIRECTORY = '{}predictive\\predictions\\'.format(FILE_DIRECTORY)
