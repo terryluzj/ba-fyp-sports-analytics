@@ -9,3 +9,4 @@
 crawler/data/links.txt
 *.py___jb_old___
 analysis/temp/links.txt
+analysis/predictive/rnn_model/tensorflow_debug.ipynb

@@ -133,5 +133,5 @@ with tf.Session() as sess:
                 training_err_str = 'Training error: %4.3f' % train_mse
                 testing_err_str = 'Testing error: %4.3f' % test_mse
                 message = '[Epoch %d] %s (%s - %s)'
-                message = message % (get_current_training_process(percentage), epoch, training_err_str, testing_err_str)
+                message = message % (epoch, get_current_training_process(percentage), training_err_str, testing_err_str)
                 logger.warning(message)
