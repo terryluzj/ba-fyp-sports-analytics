@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 
 from analysis.predictive.rnn_model.pipeline import load_data, transform_dataset, get_matrix_combination
@@ -109,6 +110,14 @@ with tf.Session() as sess:
 
         for iteration in range(n_iteration):
 
+            # Get test batch randomly
+            # TODO: Reconstruct sampling technique for testing set
+            test_start_idx = np.random.randint(0, test_X.shape[0] - batch_size)
+            test_end_idx = test_start_idx + batch_size
+            X_batch_test = test_X[test_start_idx:test_end_idx]
+            y_batch_test = test_y[test_start_idx:test_end_idx]
+            seq_length_batch_test = test_seq_length[test_start_idx:test_end_idx]
+
             # Get X, y and sequence length batch
             X_batch = train_X[start_idx:end_idx]
             y_batch = train_y[start_idx:end_idx]
@@ -123,7 +132,7 @@ with tf.Session() as sess:
 
             # Calculate RMSE
             train_mse = loss.eval(feed_dict={X: X_batch, y: y_batch, sequence_length: seq_length_batch})
-            test_mse = loss.eval(feed_dict={X: X_batch, y: y_batch, sequence_length: seq_length_batch})
+            test_mse = loss.eval(feed_dict={X: X_batch_test, y: y_batch_test, sequence_length: seq_length_batch_test})
             train_rmse = train_mse ** (1/2)
             test_mse = test_mse ** (1/2)
 
