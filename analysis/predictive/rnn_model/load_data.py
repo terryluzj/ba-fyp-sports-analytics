@@ -124,9 +124,9 @@ def train_validation_test_split_by_date(df_name, df=None, save=True,
     # Function to split the dataset into three parts
     try:
         # Read data
-        training_dataset = pd.read_csv('{}{}_training.csv'.format(DATA_DIRECTORY, df_name))
-        testing_dataset = pd.read_csv('{}{}_testing.csv'.format(DATA_DIRECTORY, df_name))
-        validation_dataset = pd.read_csv('{}{}_validation.csv'.format(DATA_DIRECTORY, df_name))
+        training_dataset = pd.read_csv('{}{}_training.csv'.format(DATA_DIRECTORY, df_name), index_col=0)
+        testing_dataset = pd.read_csv('{}{}_testing.csv'.format(DATA_DIRECTORY, df_name), index_col=0)
+        validation_dataset = pd.read_csv('{}{}_validation.csv'.format(DATA_DIRECTORY, df_name), index_col=0)
         logger.warning('Stored datasets found...')
 
         # Transform time value
