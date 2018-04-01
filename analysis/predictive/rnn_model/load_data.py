@@ -1,14 +1,10 @@
-import logging
 import pandas as pd
 from analysis.predictive.feature_engineering import feature_engineer, drop_cols
 from analysis.predictive.settings import DATA_DIRECTORY_FEATURE_ENGINEERED, DATA_DIRECTORY_PROCESSED, DEPENDENT_COLUMNS
-from analysis.predictive.rnn_model.settings import TRAINING_LABEL, DATA_DIRECTORY
+from analysis.predictive.rnn_model.settings import TRAINING_LABEL, DATA_DIRECTORY, logger
 
 DEPENDENT_COLUMNS_FORMATTED = list(map(lambda col_name: 'y_{}'.format(col_name), DEPENDENT_COLUMNS))
 TRAINING_LABEL_FORMATTED = 'y_' + TRAINING_LABEL
-FORMAT = '[%(asctime)s] %(message)s'
-logging.basicConfig(format=FORMAT)
-logger = logging.getLogger('logger')
 
 
 def read_feature_engineered_dataframe(drop_rank_info=True, filter_columns=True,
@@ -29,7 +25,8 @@ def read_feature_engineered_dataframe(drop_rank_info=True, filter_columns=True,
         race_df = read_race_dataframe(filter_columns=filter_columns, reset_index=True, **params)
         if not filter_columns:
             # Rename dependent variable columns for recognition if not dropped later
-            race_df.rename(columns={before: 'y_' + before for before in DEPENDENT_COLUMNS}, inplace=True)
+            dependent_rename_dict = {before: 'y_' + before for before in DEPENDENT_COLUMNS}
+            race_df.rename(columns=dependent_rename_dict, inplace=True)
         feature_race_df_name = 'rnn_featured' if reuse_name is None else reuse_name
         race_combined_featured_tuple = feature_engineer(race_df, df_name=feature_race_df_name)
 
@@ -196,7 +193,8 @@ def train_validation_test_split_by_date(df_name, df=None, save=True,
 if __name__ == '__main__':
     # Testing statements
     # race_df = read_race_dataframe(include_first_occurrence=True, reset_index=False, filter_columns=False)
-    # feature_df = read_feature_engineered_dataframe(reuse=True, reuse_name='rnn_featured',
-    #                                                drop_rank_info=True, filter_columns=False)
-    # test_df = train_validation_test_split_by_date('race_record_first_included')
+    feature_df = read_feature_engineered_dataframe(reuse=True, reuse_name='rnn_featured',
+                                                   drop_rank_info=True, include_first_occurrence=True,
+                                                   filter_columns=False)
+    test_df = train_validation_test_split_by_date('race_record_first_included', df=feature_df)
     pass
