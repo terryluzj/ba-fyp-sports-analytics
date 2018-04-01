@@ -1,6 +1,5 @@
 import logging
 import pandas as pd
-import tensorflow as tf
 from analysis.predictive.feature_engineering import feature_engineer, drop_cols
 from analysis.predictive.settings import DATA_DIRECTORY_FEATURE_ENGINEERED, DATA_DIRECTORY_PROCESSED, DEPENDENT_COLUMNS
 from analysis.predictive.rnn_model.settings import TRAINING_LABEL, DATA_DIRECTORY
@@ -123,7 +122,7 @@ def remove_dependent_columns(df, return_cols_dropped=False):
     return df
 
 
-def train_validation_test_split_by_date(df, df_name, save=True,
+def train_validation_test_split_by_date(df_name, df=None, save=True,
                                         train_ratio=0.85, test_ratio=0.1, validation_ratio=0.05):
     # Function to split the dataset into three parts
     try:
@@ -138,6 +137,9 @@ def train_validation_test_split_by_date(df, df_name, save=True,
         testing_dataset['run_date'] = testing_dataset['run_date'].apply(lambda x: pd.Timestamp(x))
         validation_dataset['run_date'] = validation_dataset['run_date'].apply(lambda x: pd.Timestamp(x))
     except FileNotFoundError:
+        # Ensure a dataframe is used as a reference
+        assert df is not None
+
         # Ensure that the ratio sums up to one
         if train_ratio != 0.8 or test_ratio != 0.1 or validation_ratio != 0.1:
             try:
@@ -194,6 +196,7 @@ def train_validation_test_split_by_date(df, df_name, save=True,
 if __name__ == '__main__':
     # Testing statements
     # race_df = read_race_dataframe(include_first_occurrence=True, reset_index=False, filter_columns=False)
-    feature_df = read_feature_engineered_dataframe(reuse=True, reuse_name='rnn_featured',
-                                                   drop_rank_info=True, filter_columns=False)
-    train_validation_test_split_by_date(feature_df, 'race_record_first_included')
+    # feature_df = read_feature_engineered_dataframe(reuse=True, reuse_name='rnn_featured',
+    #                                                drop_rank_info=True, filter_columns=False)
+    # test_df = train_validation_test_split_by_date('race_record_first_included')
+    pass
