@@ -29,7 +29,7 @@ CONFIG = {
 max_length = CONFIG['max_length']
 
 # Get training and testing set
-logger.warning('Current training label is {}. Fetching training and testing set...'.format(TRAINING_LABEL))
+logger.warning('Current training label is {}. Fetching training and testing set...'.format(CONFIG['target_column']))
 train, test, validation = load_data(file_name=CONFIG['file_name'])
 
 # Get X, y, mapping series of training and testing set
@@ -78,7 +78,7 @@ logger.warning('Constructing graph...')
 X = tf.placeholder(tf.float64, [None, n_steps, n_inputs])
 y = tf.placeholder(tf.float64, [None, n_steps, n_outputs])
 sequence_length = tf.placeholder(tf.int32, [None])
-cell = tf.contrib.rnn.OutputProjectionWrapper(tf.contrib.rnn.BasicRNNCell(num_units=n_neurons, activation=tf.nn.relu),
+cell = tf.contrib.rnn.OutputProjectionWrapper(tf.contrib.rnn.BasicLSTMCell(num_units=n_neurons),
                                               output_size=n_outputs)
 outputs, states = tf.nn.dynamic_rnn(cell, X, dtype=tf.float64, sequence_length=sequence_length)
 
