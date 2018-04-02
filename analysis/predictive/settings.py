@@ -15,3 +15,7 @@ TIME_WINDOW = 3
 DEPENDENT_COLUMNS = ['run_time_1000', 'run_time_diff', 'run_time_quo', 'run_time_mean', 'run_time_median'] + \
                     ['run_time_ma_window_%s' % str(idx) for idx in range(2, TIME_WINDOW + 1)] + \
                     ['run_time_ewma_window_%s' % str(idx) for idx in range(2, TIME_WINDOW + 1)]
+DEPENDENT_COLUMNS_FEATURED = list(sorted(DEPENDENT_COLUMNS[:3] +
+                                         ['%s_quo' % element for element in DEPENDENT_COLUMNS[3:]] +
+                                         ['%s_diff' % element for element in DEPENDENT_COLUMNS[3:]],
+                                         key=lambda x: len(x)))

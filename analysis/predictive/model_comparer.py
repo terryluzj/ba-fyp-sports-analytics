@@ -3,6 +3,7 @@ import pandas as pd
 import re
 
 from analysis.predictive.feature_engineering import feature_engineer
+from analysis.predictive.settings import DEPENDENT_COLUMNS_FEATURED
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import explained_variance_score
@@ -208,11 +209,12 @@ class ModelComparer(object):
         # Return all the stacking models
         return list(self.meta_models.keys())
 
-    def get_progress(self, element):
+    @staticmethod
+    def get_progress(element):
         # Print out training process
         return '[' + \
-               '>' * (self.sorted_cols.index(element) + 1) + \
-               '-' * (len(self.sorted_cols) - self.sorted_cols.index(element) - 1) + \
+               '>' * (DEPENDENT_COLUMNS_FEATURED.index(element) + 1) + \
+               '-' * (len(DEPENDENT_COLUMNS_FEATURED) - DEPENDENT_COLUMNS_FEATURED.index(element) - 1) + \
                ']'
     
     @staticmethod

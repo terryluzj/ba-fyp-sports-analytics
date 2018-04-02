@@ -4,6 +4,51 @@ from analysis.predictive.rnn_model.load_data import train_validation_test_split_
 from analysis.predictive.rnn_model.settings import logger
 
 
+def get_train_test_set(target_column, max_length, file_name=None):
+    # Get training and testing set consisting of X, y, mapping series and sequence length
+    logger.warning('Current training label is {}. Fetching training and testing set...'.format(target_column))
+    if file_name is not None:
+        train, test, validation = load_data(file_name=file_name)
+    else:
+        train, test, validation = load_data()
+
+    # Get X, y, mapping series of training and testing set
+    logger.warning('Transforming training and testing set...')
+    train_transformed = transform_dataset(train, target_column=target_column)
+    test_transformed = transform_dataset(test, target_column=target_column)
+
+    # Get matrix transformation
+    logger.warning('Getting matrix representation of training and testing set...')
+    for key in train_transformed.keys():
+        curr_series = train_transformed[key]
+        if curr_series is not None:
+            train_transformed[key] = get_matrix_combination(curr_series, max_length=max_length)
+    for key in test_transformed.keys():
+        curr_series = test_transformed[key]
+        if curr_series is not None:
+            test_transformed[key] = get_matrix_combination(curr_series, max_length=max_length)
+
+    # Assign the variables
+    train_x = train_transformed['X']['transformed']
+    train_y = train_transformed['y']['transformed']
+    train_mapped = train_transformed['mapped']
+    if train_mapped is not None:
+        train_mapped = train_transformed['mapped']['transformed']
+    train_seq_length = train_transformed['X']['length']
+
+    # Get testing set as well
+    test_x = test_transformed['X']['transformed']
+    test_y = test_transformed['y']['transformed']
+    test_mapped = test_transformed['mapped']
+    if test_mapped is not None:
+        test_mapped = test_transformed['mapped']['transformed']
+    test_seq_length = test_transformed['X']['length']
+
+    # Return as train and test dictionary
+    return {'train': (train_x, train_y, train_mapped, train_seq_length,),
+            'test': (test_x, test_y, test_mapped, test_seq_length, )}
+
+
 def load_data(file_name='race_record_first_included'):
     # Load training and testing data from the function defined in load_data.py
     df_name = file_name if '.csv' not in file_name else file_name.replace('.csv', '')
@@ -110,6 +155,7 @@ def get_matrix_combination(df, max_length=None, drop_col_name='run_date', groupb
 
 
 """ Example code from Tensorflow documentation
+
 def train_input_fn(features, labels, batch_size, count=None):
     # Input function for training, example code from Iris classification example on Tensorflow
     assert batch_size is not None
@@ -130,4 +176,5 @@ def eval_input_fn(features, labels, batch_size):
     dataset = tf.data.Dataset.from_tensor_slices(inputs)
     dataset = dataset.batch(batch_size)
     return dataset
+    
 """
