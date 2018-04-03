@@ -94,15 +94,10 @@ class ModelComparer(object):
             
             if 'normalized' in model_name.lower():
                 # Normalize the dataset when specified in model name as 'normalized'
-                scaler = StandardScaler()
-                scaler.fit(x_train)
-                x_train = pd.DataFrame(scaler.transform(x_train), index=x_train.index)
-                x_test = pd.DataFrame(scaler.transform(x_test), index=x_test.index)
+                x_train, x_test = self.get_normalized_train_test(x_train, x_test)
 
             # Print progress and fit the model
-            print('%s: Performing analysis on column %s for model %s (Size: %s)' %
-                  (self.get_progress(y_col_name), y_col_name, model_name, str(x_train.shape)),
-                  end='\r', flush=True)
+            self.print_progress(y_col_name=y_col_name, model_name=model_name, train_data=x_train)
             model.fit(x_train, y_train)
 
             # Add model information for stacking model as well
@@ -211,6 +206,21 @@ class ModelComparer(object):
     def get_meta_models(self):
         # Return all the stacking models
         return list(self.meta_models.keys())
+
+    @staticmethod
+    def get_normalized_train_test(train, test):
+        # Normalize the dataset when specified in model name as 'normalized'
+        scaler = StandardScaler()
+        scaler.fit(train)
+        x_train = pd.DataFrame(scaler.transform(train), index=train.index)
+        x_test = pd.DataFrame(scaler.transform(test), index=test.index)
+        return x_train, x_test
+
+    @staticmethod
+    def print_progress(y_col_name, model_name, train_data):
+        print('%s: Performing analysis on column %s for model %s (Size: %s)' %
+              (ModelComparer.get_progress(y_col_name), y_col_name, model_name, str(train_data.shape)),
+              end='\r', flush=True)
 
     @staticmethod
     def get_progress(element):
