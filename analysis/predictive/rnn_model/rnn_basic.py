@@ -3,7 +3,7 @@ import tensorflow as tf
 
 from analysis.predictive.model_comparer import ModelComparer
 from analysis.predictive.rnn_model.pipeline import get_train_test_set
-from analysis.predictive.rnn_model.settings import TRAINING_LABEL, logger, get_current_training_process
+from analysis.predictive.rnn_model.settings import FILE_DIRECTORY, TRAINING_LABEL, logger, get_current_training_process
 
 TIME_STEP = 15
 CONFIG = {
@@ -85,9 +85,6 @@ with tf.Session() as sess:
     init.run()
     for epoch in range(n_epochs):
 
-        if epoch % 2 == 0:
-            save_path = saver.save(sess, '/model/basic_rnn_%s' % TRAINING_LABEL)
-
         # Set up start and end index of batch set
         start_idx = 0
         end_idx = start_idx + batch_size
@@ -136,4 +133,7 @@ with tf.Session() as sess:
                 message = message % (epoch, get_current_training_process(percentage), training_err_str, testing_err_str)
                 logger.warning(message)
 
-    save_path = saver.save(sess, '/model/basic_rnn_final_%s' % TRAINING_LABEL)
+        # Save model
+        save_path = saver.save(sess, FILE_DIRECTORY + 'model/basic_rnn_%s.ckpt' % TRAINING_LABEL)
+
+    save_path = saver.save(sess, FILE_DIRECTORY + 'model/basic_rnn_final_%s.ckpt' % TRAINING_LABEL)
