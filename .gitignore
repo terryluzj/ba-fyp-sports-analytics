@@ -11,3 +11,4 @@ crawler/data/links.txt
 analysis/temp/links.txt
 analysis/predictive/rnn_model/tensorflow_debug.ipynb
 analysis/predictive/regression_models_debug.ipynb
+analysis/predictive/regression_models_debug_2.ipynb

@@ -36,7 +36,14 @@ def store_values(mc, prefix):
     for key in mc.meta_models.keys():
         for col in mc.meta_models[key].keys():
             curr_meta = mc.meta_models[key][col]
-            curr_index = mc.X_train[mc.X_train.index.isin(mc.y_train[col].dropna().index)].index
             regressors = list(map(lambda x: re.search(r'(\w+)\(', repr(x)).group(1), curr_meta.regr_))
-            curr_df = pd.DataFrame(curr_meta.train_meta_features_, index=curr_index, columns=regressors)
-            curr_df.to_csv('{}meta_{}/{}.csv'.format(PRED_FILE_DIRECTORY, prefix, col))
+
+            # Get training dataset with meta features
+            curr_index_train = mc.X_train[mc.X_train.index.isin(mc.y_train[col].dropna().index)].index
+            curr_df_train = pd.DataFrame(curr_meta.train_meta_features_, index=curr_index_train, columns=regressors)
+            curr_df_train.to_csv('{}meta_{}/{}.csv'.format(PRED_FILE_DIRECTORY, prefix, col))
+
+            # Get testing dataset with meta features
+            curr_index_test = mc.X_test[mc.X_test.index.isin(mc.y_test[col].dropna().index)].index
+            curr_df_test = pd.DataFrame(mc.meta_predictions[key][col], index=curr_index_test, columns=regressors)
+            curr_df_test.to_csv('{}meta_{}_test/{}.csv'.format(PRED_FILE_DIRECTORY, prefix, col))

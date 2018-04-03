@@ -61,6 +61,7 @@ class ModelComparer(object):
         self.model_dict = {}
         self.meta_models = {}
         self.predictions = {}
+        self.meta_predictions = {}
 
         # Boolean variable to indicate whether to drop last run time information for training
         self.drop_last = drop_last
@@ -108,7 +109,9 @@ class ModelComparer(object):
             if 'meta' in model_name.lower():
                 if model_name not in self.meta_models.keys():
                     self.meta_models[model_name] = {}
+                    self.meta_predictions[model_name] = {}
                 self.meta_models[model_name][y_col_name] = model
+                self.meta_predictions[model_name][y_col_name] = model.predict_meta_features(x_test)
 
             # Get prediction of testing date and evaluate
             y_pred = model.predict(x_test)
