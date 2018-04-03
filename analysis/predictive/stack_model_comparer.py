@@ -44,7 +44,7 @@ class StackModelComparer(ModelComparer):
             # Get dependent column values
             meta_train_y = self.meta_train_y[target_column].dropna()
             meta_test_y = self.meta_test_y[target_column].dropna()
-            operator = target_column.split('_')[-1]
+            operator = self.get_operator(target_column)
 
             # Get original mapped series of current column name
             if target_column != self.run_time_col_name:
@@ -98,6 +98,8 @@ class StackModelComparer(ModelComparer):
             self.model_dict[model_name][rmse_col] = '%.6f' % rmse_score
             self.model_dict[model_name][r_squared_col] = '%.3f' % r_squared_score
 
+        print('\n' + ('Added model named %s ' % model_name))
+
     @staticmethod
     def transform_features(meta_x, mapped, operator):
         # Transform feature columns by difference or quotient
@@ -116,5 +118,6 @@ class StackModelComparer(ModelComparer):
         assert operator in ['diff', 'quo']
         if operator == 'diff':
             return untransformed + mapped
-        else:
+        elif operator == 'quo':
             return untransformed * mapped
+        return untransformed

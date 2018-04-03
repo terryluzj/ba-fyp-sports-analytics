@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
+from analysis.predictive.model_comparer import ModelComparer
 from analysis.predictive.rnn_model.pipeline import get_train_test_set
 from analysis.predictive.rnn_model.settings import TRAINING_LABEL, logger, get_current_training_process
 
@@ -21,7 +22,7 @@ CONFIG = {
     # Execution phase related
     'n_epochs': 50,
     'batch_size': 100,
-    'testing_data_size': 1000,
+    'test_batch_size': 1000,
 
     # Logging related
     'print_interval': 20
@@ -42,23 +43,32 @@ n_inputs = CONFIG['n_inputs']
 n_neurons = CONFIG['n_neurons']
 n_outputs = CONFIG['n_outputs']
 learning_rate = CONFIG['learning_rate']
+operator = ModelComparer.get_operator(CONFIG['target_column'])
 
 # Set placeholder, cell and outputs
 logger.warning('Constructing graph...')
 X = tf.placeholder(tf.float64, [None, n_steps, n_inputs])
 y = tf.placeholder(tf.float64, [None, n_steps, n_outputs])
+y_map = tf.placeholder(tf.float64, [None, n_steps, n_outputs])
 sequence_length = tf.placeholder(tf.int32, [None])
+
 cell = tf.contrib.rnn.OutputProjectionWrapper(tf.contrib.rnn.BasicRNNCell(num_units=n_neurons, activation=tf.nn.relu),
                                               output_size=n_outputs)
 outputs, states = tf.nn.dynamic_rnn(cell, X, dtype=tf.float64, sequence_length=sequence_length)
 
 # Set loss function and optimizer
-loss = tf.reduce_mean(tf.square(outputs - y))
+if operator == 'diff':
+    loss = tf.reduce_mean(tf.square(tf.add(outputs, y_map) - tf.add(y, y_map)))
+elif operator == 'quo':
+    loss = tf.reduce_mean(tf.square(tf.multiply(outputs, y_map) - tf.multiply(y, y_map)))
+else:
+    loss = tf.reduce_mean(tf.square(outputs - y))
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 training_op = optimizer.minimize(loss)
 
 # Initialize all graph nodes
 init = tf.global_variables_initializer()
+saver = tf.train.Saver()
 
 # EXECUTION PHASE ==============================================================================================
 
@@ -66,6 +76,7 @@ init = tf.global_variables_initializer()
 num_instances = train_X.shape[0]
 n_epochs = CONFIG['n_epochs']
 batch_size = CONFIG['batch_size']
+test_batch_size = CONFIG['test_batch_size']
 n_iteration = num_instances // batch_size
 
 with tf.Session() as sess:
@@ -74,23 +85,19 @@ with tf.Session() as sess:
     init.run()
     for epoch in range(n_epochs):
 
+        if epoch % 2 == 0:
+            save_path = saver.save(sess, '/model/basic_rnn_%s' % TRAINING_LABEL)
+
         # Set up start and end index of batch set
         start_idx = 0
         end_idx = start_idx + batch_size
 
         for iteration in range(n_iteration):
 
-            # Get test batch randomly
-            # TODO: Reconstruct sampling technique for testing set
-            start_idx_test = np.random.randint(0, test_X.shape[0] - batch_size)
-            end_idx_test = start_idx_test + batch_size
-            X_batch_test = test_X[start_idx_test:end_idx_test]
-            y_batch_test = test_y[start_idx_test:end_idx_test]
-            seq_length_batch_test = test_seq_length[start_idx_test:end_idx_test]
-
             # Get X, y and sequence length batch
             X_batch = train_X[start_idx:end_idx]
             y_batch = train_y[start_idx:end_idx]
+            y_map_batch = train_mapped[start_idx:end_idx]
             seq_length_batch = train_seq_length[start_idx:end_idx]
 
             # Update start and end index
@@ -98,11 +105,25 @@ with tf.Session() as sess:
             end_idx = start_idx + batch_size
 
             # Run training on the batched set
-            sess.run(training_op, feed_dict={X: X_batch, y: y_batch, sequence_length: seq_length_batch})
+            sess.run(training_op, feed_dict={X: X_batch, y: y_batch,
+                                             y_map: y_map_batch, sequence_length: seq_length_batch})
+
+            # Get test batch randomly
+            # TODO: Reconstruct sampling technique for testing set
+            start_idx_test = np.random.randint(0, test_X.shape[0] - test_batch_size)
+            end_idx_test = start_idx_test + test_batch_size
+            X_batch_test = test_X[start_idx_test:end_idx_test]
+            y_batch_test = test_y[start_idx_test:end_idx_test]
+            y_map_batch_test = test_mapped[start_idx_test:end_idx_test]
+            seq_length_batch_test = test_seq_length[start_idx_test:end_idx_test]
 
             # Calculate RMSE
-            train_mse = loss.eval(feed_dict={X: X_batch, y: y_batch, sequence_length: seq_length_batch})
-            test_mse = loss.eval(feed_dict={X: X_batch_test, y: y_batch_test, sequence_length: seq_length_batch_test})
+            train_mse = loss.eval(feed_dict={X: X_batch, y: y_batch,
+                                             y_map: y_map_batch,
+                                             sequence_length: seq_length_batch})
+            test_mse = loss.eval(feed_dict={X: X_batch_test, y: y_batch_test,
+                                            y_map: y_map_batch_test,
+                                            sequence_length: seq_length_batch_test})
             train_rmse = train_mse ** (1/2)
             test_mse = test_mse ** (1/2)
 
@@ -114,3 +135,5 @@ with tf.Session() as sess:
                 message = '[Epoch %d] %s (%s - %s)'
                 message = message % (epoch, get_current_training_process(percentage), training_err_str, testing_err_str)
                 logger.warning(message)
+
+    save_path = saver.save(sess, '/model/basic_rnn_final_%s' % TRAINING_LABEL)

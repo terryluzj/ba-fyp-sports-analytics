@@ -90,7 +90,7 @@ def transform_dataset(df, target_column='y_run_time_1000'):
                 df_transformed = df.loc[df[original_target_name] != 0].copy()
 
                 # Assign it to the mapping and do the calculation as new series
-                original_target = df[original_target_name]
+                original_target = df_transformed[original_target_name]
                 mapped = original_target
                 if quo_feature:
                     df_transformed[target_column] = df_transformed['y_run_time_1000'] / \

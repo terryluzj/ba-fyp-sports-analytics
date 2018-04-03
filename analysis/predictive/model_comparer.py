@@ -223,6 +223,11 @@ class ModelComparer(object):
               end='\r', flush=True)
 
     @staticmethod
+    def get_operator(target_column):
+        # Return the operation specified in a column name
+        return target_column.split('_')[-1]
+
+    @staticmethod
     def get_progress(element):
         # Print out training process
         return '[' + \
