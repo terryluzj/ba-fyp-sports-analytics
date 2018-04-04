@@ -12,8 +12,8 @@ from sklearn.metrics import explained_variance_score
 class ModelComparer(object):
     # Helper class to incorporate different regression models
     run_time_col_name = 'run_time_1000'
-    
-    def __init__(self, x_df, y_df, original_y_df_dict,
+
+    def __init__(self, x_df, y_df, original_y_df_dict, df_name='model_featured',
                  sampled=False, random_split=False, ratio=0.85, drop_last=True, **kwargs):
         """
         :param x_df: pandas dataframe of independent variables of the dataset
@@ -28,7 +28,7 @@ class ModelComparer(object):
 
         # Get feature engineered dataframe
         self.X, self.y_rank = feature_engineer(df=x_df.reset_index(),
-                                               df_name='model_featured' if not sampled else 'model_featured_sampled')
+                                               df_name=df_name if not sampled else '{}_sampled'.format(df_name))
         self.y = y_df[y_df.index.isin(self.X.index)]
         self.y_original = original_y_df_dict
 
@@ -65,7 +65,7 @@ class ModelComparer(object):
 
         # Boolean variable to indicate whether to drop last run time information for training
         self.drop_last = drop_last
-        
+
     def add_model(self, model_method, model_name, **params):
 
         # Initiate model dict
@@ -77,7 +77,7 @@ class ModelComparer(object):
             model = model_method(**params)
             self.models.append(model)
             self.model_dict[model_name]['Model Spec'] = repr(model)
-            
+
             # Uncomment the following lines to observe DV prediction without last run time info
             if self.drop_last and y_col_name != self.run_time_col_name:
                 x_train = self.X_train.drop('last_run_time', axis=1)
@@ -91,13 +91,13 @@ class ModelComparer(object):
             y_test = self.y_test[y_col_name].dropna()
             x_train = x_train[x_train.index.isin(y_train.index)]
             x_test = x_test[x_test.index.isin(y_test.index)]
-            
+
             if 'normalized' in model_name.lower():
                 # Normalize the dataset when specified in model name as 'normalized'
                 x_train, x_test = self.get_normalized_train_test(x_train, x_test)
 
             # Print progress and fit the model
-            self.print_progress(y_col_name=y_col_name, model_name=model_name, train_data=x_train)
+            self.print_progress(y_col_name=y_col_name, model_name=model_name, train_data=x_train, column_list=self.sorted_cols)
             model.fit(x_train, y_train)
 
             # Add model information for stacking model as well
@@ -162,7 +162,7 @@ class ModelComparer(object):
 
         # Return prediction and actual value filtered by missing values
         return pred, run_time
-        
+
     def get_report(self, filter_word=''):
         # Generate performance report
 
@@ -217,10 +217,10 @@ class ModelComparer(object):
         return x_train, x_test
 
     @staticmethod
-    def print_progress(y_col_name, model_name, train_data):
-        print('%s: Performing analysis on column %s for model %s (Size: %s)' %
-              (ModelComparer.get_progress(y_col_name), y_col_name, model_name, str(train_data.shape)),
-              end='\r', flush=True)
+    def print_progress(y_col_name, model_name, train_data, column_list=DEPENDENT_COLUMNS_FEATURED):
+        print('%s: Performing analysis on column %s for model %s (Size: %s)' % 
+        	 (ModelComparer.get_progress(y_col_name, column_list=column_list), y_col_name, model_name, str(train_data.shape)), 
+        	 end='\r', flush=True)
 
     @staticmethod
     def get_operator(target_column):
@@ -228,19 +228,19 @@ class ModelComparer(object):
         return target_column.split('_')[-1]
 
     @staticmethod
-    def get_progress(element):
+    def get_progress(element, column_list=DEPENDENT_COLUMNS_FEATURED):
         # Print out training process
         return '[' + \
-               '>' * (DEPENDENT_COLUMNS_FEATURED.index(element) + 1) + \
-               '-' * (len(DEPENDENT_COLUMNS_FEATURED) - DEPENDENT_COLUMNS_FEATURED.index(element) - 1) + \
+               '>' * (column_list.index(element) + 1) + \
+               '-' * (len(column_list) - column_list.index(element) - 1) + \
                ']'
-    
+
     @staticmethod
     def get_rmse(y_true, y_pred):
         # Return Root-Mean Square Error by given predictions and actual values
         diff = np.sum((y_true - y_pred) ** 2)
         return (diff / y_true.shape[0]) ** 1/2
-    
+
     @staticmethod
     def get_r_squared(y_true, y_pred):
         # Return R-squared values
