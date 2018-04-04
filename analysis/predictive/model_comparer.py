@@ -209,13 +209,15 @@ class ModelComparer(object):
         return list(self.meta_models.keys())
 
     @staticmethod
-    def get_normalized_train_test(train, test):
+    def get_normalized_train_test(model_name, train, test):
         # Normalize the dataset when specified in model name as 'normalized'
-        scaler = StandardScaler()
-        scaler.fit(train)
-        x_train = pd.DataFrame(scaler.transform(train), index=train.index)
-        x_test = pd.DataFrame(scaler.transform(test), index=test.index)
-        return x_train, x_test
+        if 'normalized' in model_name.lower():
+            scaler = StandardScaler()
+            scaler.fit(train)
+            x_train = pd.DataFrame(scaler.transform(train), index=train.index)
+            x_test = pd.DataFrame(scaler.transform(test), index=test.index)
+            return x_train, x_test
+        return train, test
 
     @staticmethod
     def print_progress(y_col_name, model_name, train_data, column_list=DEPENDENT_COLUMNS_FEATURED):

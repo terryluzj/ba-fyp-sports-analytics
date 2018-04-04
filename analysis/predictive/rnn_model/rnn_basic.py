@@ -30,7 +30,7 @@ CONFIG = {
     'test_batch_size': 500,
 
     # Logging related
-    'print_interval': 20
+    'print_interval': 10
 }
 now = datetime.utcnow().strftime('%Y%m%d%H%M%S')
 root_logdir = 'log'
@@ -106,12 +106,7 @@ with tf.Session() as sess:
             y_batch = train_y[start_idx:end_idx]
             seq_length_batch = train_seq_length[start_idx:end_idx]
 
-            # Update start and end index
-            start_idx = end_idx
-            end_idx = start_idx + batch_size
-
             # Get test batch randomly
-            # TODO: Reconstruct sampling technique for testing set
             start_idx_test = np.random.randint(0, test_X.shape[0] - test_batch_size)
             end_idx_test = start_idx_test + test_batch_size
             X_batch_test = test_X[start_idx_test:end_idx_test]
@@ -119,40 +114,27 @@ with tf.Session() as sess:
             seq_length_batch_test = test_seq_length[start_idx_test:end_idx_test]
 
             # Run training on the batched set
-            if train_mapped is not None:
+            feed_dict = {X: X_batch, y: y_batch, sequence_length: seq_length_batch}
+            feed_dict_test = {X: X_batch_test, y: y_batch_test, sequence_length: seq_length_batch_test}
+            try:
                 y_map_batch = train_mapped[start_idx:end_idx]
                 y_map_batch_test = test_mapped[start_idx_test:end_idx_test]
-                sess.run(training_op, feed_dict={X: X_batch, y: y_batch,
-                                                 y_map: y_map_batch, sequence_length: seq_length_batch})
-                train_mse = loss.eval(feed_dict={X: X_batch, y: y_batch,
-                                                 y_map: y_map_batch,
-                                                 sequence_length: seq_length_batch})
-                test_mse = loss.eval(feed_dict={X: X_batch_test, y: y_batch_test,
-                                                y_map: y_map_batch_test,
-                                                sequence_length: seq_length_batch_test})
-            else:
-                y_map_batch = None
-                y_map_batch_test = None
-                sess.run(training_op, feed_dict={X: X_batch, y: y_batch,
-                                                 sequence_length: seq_length_batch})
-                train_mse = loss.eval(feed_dict={X: X_batch, y: y_batch,
-                                                 sequence_length: seq_length_batch})
-                test_mse = loss.eval(feed_dict={X: X_batch_test, y: y_batch_test,
-                                                sequence_length: seq_length_batch_test})
+                feed_dict[y_map] = y_map_batch
+                feed_dict_test[y_map] = y_map_batch_test
+            except TypeError:
+                pass
+            sess.run(training_op, feed_dict=feed_dict)
 
             # Calculate RMSE
+            train_mse = loss.eval(feed_dict=feed_dict)
+            test_mse = loss.eval(feed_dict=feed_dict_test)
             train_rmse = train_mse ** (1/2)
             test_mse = test_mse ** (1/2)
 
             # Log information
             if iteration % CONFIG['print_interval'] == 0:
                 # Write to Tensorboard
-                if train_mapped is not None:
-                    summary_str = mse_summary.eval(feed_dict={X: X_batch, y: y_batch, y_map: y_map_batch,
-                                                              sequence_length: seq_length_batch})
-                else:
-                    summary_str = mse_summary.eval(feed_dict={X: X_batch, y: y_batch,
-                                                              sequence_length: seq_length_batch})
+                summary_str = mse_summary.eval(feed_dict=feed_dict)
                 step = epoch * n_iteration + iteration
                 file_writer.add_summary(summary_str, step)
 
@@ -161,8 +143,13 @@ with tf.Session() as sess:
                 training_err_str = 'Training error: %4.3f' % train_mse
                 testing_err_str = 'Testing error: %4.3f' % test_mse
                 message = '[Epoch %d] %s (%s - %s)'
-                message = message % (epoch, get_current_training_process(percentage), training_err_str, testing_err_str)
+                message = message % (epoch + 1, get_current_training_process(percentage),
+                                     training_err_str, testing_err_str)
                 logger.warning(message)
+
+            # Update start and end index
+            start_idx = end_idx
+            end_idx = start_idx + batch_size
 
         # Save model
         save_path = saver.save(sess, FILE_DIRECTORY + 'model/basic_rnn_%s.ckpt' % TRAINING_LABEL)
