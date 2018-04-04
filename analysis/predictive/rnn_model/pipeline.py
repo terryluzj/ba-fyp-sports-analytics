@@ -4,7 +4,7 @@ from analysis.predictive.rnn_model.load_data import train_validation_test_split_
 from analysis.predictive.rnn_model.settings import logger
 
 
-def get_train_test_set(target_column, max_length, file_name=None):
+def get_train_test_set(target_column, max_length, file_name=None, first_race_record=False):
     # Get training and testing set consisting of X, y, mapping series and sequence length
     logger.warning('Current training label is {}. Fetching training and testing set...'.format(target_column))
     if file_name is not None:
@@ -14,8 +14,8 @@ def get_train_test_set(target_column, max_length, file_name=None):
 
     # Get X, y, mapping series of training and testing set
     logger.warning('Transforming training and testing set...')
-    train_transformed = transform_dataset(train, target_column=target_column)
-    test_transformed = transform_dataset(test, target_column=target_column)
+    train_transformed = transform_dataset(train, target_column=target_column, first_race_record=first_race_record)
+    test_transformed = transform_dataset(test, target_column=target_column, first_race_record=first_race_record)
 
     # Get matrix transformation
     logger.warning('Getting matrix representation of training and testing set...')
@@ -58,7 +58,7 @@ def load_data(file_name='race_record_first_included'):
     return train, test, validation
 
 
-def transform_dataset(df, target_column='y_run_time_1000'):
+def transform_dataset(df, target_column='y_run_time_1000', first_race_record=False):
     # Transform the dataset into X and y, with some DV feature engineering
     feature_names = list(filter(lambda col_name: 'y_run' in col_name, df.columns))
 
@@ -103,8 +103,13 @@ def transform_dataset(df, target_column='y_run_time_1000'):
             logger.warning('No dataframe returned as target_column was not specified correctly')
             return {}
     else:
-        # Remove zeroes
-        df_transformed = df.loc[df['last_run_time'] != 0].copy()
+        if not first_race_record:
+            # Remove zeroes
+            df_transformed = df.loc[df['last_run_time'] != 0].copy()
+        else:
+            # Get only records that represent the first race of the horse in the dataset
+            df_transformed = df.loc[df['last_run_time'] == 0].copy()
+            feature_names.append('last_run_time')
 
         # Do not remove the dependent column if matched with the default target column
         feature_names.remove('y_run_time_1000')

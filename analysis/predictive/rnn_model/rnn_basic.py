@@ -10,6 +10,7 @@ CONFIG = {
     # Dataset related
     'file_name': 'race_record_first_included',
     'target_column': TRAINING_LABEL,
+    'first_race_record': False,
     
     # Construction phase related
     'max_length': TIME_STEP,
@@ -31,7 +32,7 @@ CONFIG = {
 # DATA PREPARATION =============================================================================================
 
 train_test_set = get_train_test_set(target_column=CONFIG['target_column'], max_length=CONFIG['max_length'],
-                                    file_name=CONFIG['file_name'])
+                                    file_name=CONFIG['file_name'], first_race_record=CONFIG['first_race_record'])
 train_X, train_y, train_mapped, train_seq_length = train_test_set['train']
 test_X, test_y, test_mapped, test_seq_length = train_test_set['test']
 

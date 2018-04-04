@@ -97,7 +97,8 @@ class ModelComparer(object):
                 x_train, x_test = self.get_normalized_train_test(x_train, x_test)
 
             # Print progress and fit the model
-            self.print_progress(y_col_name=y_col_name, model_name=model_name, train_data=x_train, column_list=self.sorted_cols)
+            self.print_progress(y_col_name=y_col_name, model_name=model_name,
+                                train_data=x_train, column_list=self.sorted_cols)
             model.fit(x_train, y_train)
 
             # Add model information for stacking model as well
@@ -218,9 +219,10 @@ class ModelComparer(object):
 
     @staticmethod
     def print_progress(y_col_name, model_name, train_data, column_list=DEPENDENT_COLUMNS_FEATURED):
-        print('%s: Performing analysis on column %s for model %s (Size: %s)' % 
-        	 (ModelComparer.get_progress(y_col_name, column_list=column_list), y_col_name, model_name, str(train_data.shape)), 
-        	 end='\r', flush=True)
+        print('%s: Performing analysis on column %s for model %s (Size: %s)' %
+              (ModelComparer.get_progress(y_col_name, column_list=column_list),
+               y_col_name, model_name, str(train_data.shape)),
+              end='\r', flush=True)
 
     @staticmethod
     def get_operator(target_column):
