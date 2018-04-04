@@ -3,15 +3,19 @@ import tensorflow as tf
 
 from analysis.predictive.model_comparer import ModelComparer
 from analysis.predictive.rnn_model.pipeline import get_train_test_set
-from analysis.predictive.rnn_model.settings import FILE_DIRECTORY, TRAINING_LABEL, logger, get_current_training_process
+from analysis.predictive.rnn_model.settings import FILE_DIRECTORY, TRAINING_LABEL, PREDICT_FIRST_RACE
+from analysis.predictive.rnn_model.settings import logger, get_current_training_process
+from datetime import datetime
+
+# CONFIG =============================================================================================
 
 TIME_STEP = 15
 CONFIG = {
     # Dataset related
     'file_name': 'race_record_first_included',
     'target_column': TRAINING_LABEL,
-    'first_race_record': False,
-    
+    'first_race_record': PREDICT_FIRST_RACE,
+
     # Construction phase related
     'max_length': TIME_STEP,
     'n_steps': TIME_STEP,
@@ -23,11 +27,14 @@ CONFIG = {
     # Execution phase related
     'n_epochs': 50,
     'batch_size': 100,
-    'test_batch_size': 1000,
+    'test_batch_size': 500,
 
     # Logging related
     'print_interval': 20
 }
+now = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+root_logdir = 'log'
+logdir = '{}/run-{}-{}-first-{}/'.format(root_logdir, now, TRAINING_LABEL, CONFIG['first_race_record'])
 
 # DATA PREPARATION =============================================================================================
 
@@ -70,6 +77,8 @@ training_op = optimizer.minimize(loss)
 # Initialize all graph nodes
 init = tf.global_variables_initializer()
 saver = tf.train.Saver()
+mse_summary = tf.summary.scalar('RMSE', loss)
+file_writer = tf.summary.FileWriter(logdir, tf.get_default_graph())
 
 # EXECUTION PHASE ==============================================================================================
 
@@ -95,16 +104,11 @@ with tf.Session() as sess:
             # Get X, y and sequence length batch
             X_batch = train_X[start_idx:end_idx]
             y_batch = train_y[start_idx:end_idx]
-            y_map_batch = train_mapped[start_idx:end_idx]
             seq_length_batch = train_seq_length[start_idx:end_idx]
 
             # Update start and end index
             start_idx = end_idx
             end_idx = start_idx + batch_size
-
-            # Run training on the batched set
-            sess.run(training_op, feed_dict={X: X_batch, y: y_batch,
-                                             y_map: y_map_batch, sequence_length: seq_length_batch})
 
             # Get test batch randomly
             # TODO: Reconstruct sampling technique for testing set
@@ -112,21 +116,47 @@ with tf.Session() as sess:
             end_idx_test = start_idx_test + test_batch_size
             X_batch_test = test_X[start_idx_test:end_idx_test]
             y_batch_test = test_y[start_idx_test:end_idx_test]
-            y_map_batch_test = test_mapped[start_idx_test:end_idx_test]
             seq_length_batch_test = test_seq_length[start_idx_test:end_idx_test]
 
+            # Run training on the batched set
+            if train_mapped is not None:
+                y_map_batch = train_mapped[start_idx:end_idx]
+                y_map_batch_test = test_mapped[start_idx_test:end_idx_test]
+                sess.run(training_op, feed_dict={X: X_batch, y: y_batch,
+                                                 y_map: y_map_batch, sequence_length: seq_length_batch})
+                train_mse = loss.eval(feed_dict={X: X_batch, y: y_batch,
+                                                 y_map: y_map_batch,
+                                                 sequence_length: seq_length_batch})
+                test_mse = loss.eval(feed_dict={X: X_batch_test, y: y_batch_test,
+                                                y_map: y_map_batch_test,
+                                                sequence_length: seq_length_batch_test})
+            else:
+                y_map_batch = None
+                y_map_batch_test = None
+                sess.run(training_op, feed_dict={X: X_batch, y: y_batch,
+                                                 sequence_length: seq_length_batch})
+                train_mse = loss.eval(feed_dict={X: X_batch, y: y_batch,
+                                                 sequence_length: seq_length_batch})
+                test_mse = loss.eval(feed_dict={X: X_batch_test, y: y_batch_test,
+                                                sequence_length: seq_length_batch_test})
+
             # Calculate RMSE
-            train_mse = loss.eval(feed_dict={X: X_batch, y: y_batch,
-                                             y_map: y_map_batch,
-                                             sequence_length: seq_length_batch})
-            test_mse = loss.eval(feed_dict={X: X_batch_test, y: y_batch_test,
-                                            y_map: y_map_batch_test,
-                                            sequence_length: seq_length_batch_test})
             train_rmse = train_mse ** (1/2)
             test_mse = test_mse ** (1/2)
 
             # Log information
             if iteration % CONFIG['print_interval'] == 0:
+                # Write to Tensorboard
+                if train_mapped is not None:
+                    summary_str = mse_summary.eval(feed_dict={X: X_batch, y: y_batch, y_map: y_map_batch,
+                                                              sequence_length: seq_length_batch})
+                else:
+                    summary_str = mse_summary.eval(feed_dict={X: X_batch, y: y_batch,
+                                                              sequence_length: seq_length_batch})
+                step = epoch * n_iteration + iteration
+                file_writer.add_summary(summary_str, step)
+
+                # Print out loss information
                 percentage = int(iteration / n_iteration * 100)
                 training_err_str = 'Training error: %4.3f' % train_mse
                 testing_err_str = 'Testing error: %4.3f' % test_mse
