@@ -6,12 +6,10 @@
 *.db
 *.db-journal
 *.csv
-crawler/data/links.txt
+links.txt
 *.py___jb_old___
-analysis/temp/links.txt
-analysis/predictive/rnn_model/tensorflow_debug.ipynb
+tensorflow_debug.ipynb
 
-analysis/predictive/regression_models_debug.ipynb
-analysis/predictive/regression_models_debug_2.ipynb
+regression_models_debug_2.ipynb
 
 model/
