@@ -77,7 +77,7 @@ class StackModelComparer(ModelComparer):
                                                                                                operator,
                                                                                                original_mapped_series,
                                                                                                transform_then_predict)
-            model.fit(meta_train_x, meta_train_y)
+            model.fit(meta_train_x.as_matrix(), meta_train_y.as_matrix())
 
             # Get prediction and true value
             y_true, y_pred = self.get_prediction_true(model, meta_test_x, meta_test_y, operator,
@@ -125,7 +125,7 @@ class StackModelComparer(ModelComparer):
                     meta_train_x, meta_test_x = self.get_normalized_train_test(model_name, meta_train_x, meta_test_x)
 
                     # Fit the model
-                    model.fit(meta_train_x, meta_train_y)
+                    model.fit(meta_train_x.as_matrix(), meta_train_y.as_matrix())
 
                     # Get prediction and true value and evaluate RMSE
                     y_true, y_pred = self.get_prediction_true(model, meta_test_x, meta_test_y,
@@ -174,7 +174,7 @@ class StackModelComparer(ModelComparer):
     def get_prediction_true(self, model, meta_test_x, meta_test_y, operator,
                             original_mapped_series, transform_then_predict):
         # Get prediction and true value
-        y_pred = pd.Series(model.predict(meta_test_x), index=meta_test_x.index)
+        y_pred = pd.Series(model.predict(meta_test_x.as_matrix()), index=meta_test_x.index)
         if transform_then_predict:
             y_true = meta_test_y
         else:

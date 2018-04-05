@@ -26,10 +26,12 @@ def get_pred_values(prefix, is_meta, original_df_combined, join_place=True):
 
 def store_values(mc, prefix):
     # Store predictions of baseline models
+    """ Uncomment to store prediction value
     print('Storing prediction files...')
     for key in sorted(mc.predictions.keys()):
-        pred_value = pd.DataFrame(mc.predictions[key], index=mc.X_test.index)
-        pred_value.to_csv('{}{}/{}.csv'.format(PRED_FILE_DIRECTORY, prefix, key))
+    pred_value = pd.DataFrame(mc.predictions[key], index=mc.X_test.index)
+    pred_value.to_csv('{}{}/{}.csv'.format(PRED_FILE_DIRECTORY, prefix, key))
+    """
 
     # Store trained meta-features of stacking models
     print('Storing meta-model trained features files...')

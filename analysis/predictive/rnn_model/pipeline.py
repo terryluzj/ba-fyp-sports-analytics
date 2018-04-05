@@ -2,6 +2,60 @@ import numpy as np
 
 from analysis.predictive.rnn_model.load_data import train_validation_test_split_by_date
 from analysis.predictive.rnn_model.settings import logger
+from analysis.predictive.settings import DEPENDENT_COLUMNS_FEATURED
+
+
+class HorseRaceDataset(object):
+
+    def __init__(self, max_length, file_name='race_record_first_included', first_race=False):
+        # Get training and testing set consisting of X, y, mapping series and sequence length
+        logger.warning('Fetching training and testing set...')
+        self.train, self.test, self.validation = load_data(file_name=file_name)
+        self.max_length = max_length
+        self.first_race = first_race
+        self.race_dataset = {}
+        for column_name in DEPENDENT_COLUMNS_FEATURED:
+            self.race_dataset['y_{}'.format(column_name)] = {}
+
+    def get_target_dataframe(self, train_test_validation, target_column):
+        # Get the target dataframe by specifying train, test and validation set with the target column
+        target_column = 'y_{}'.format(target_column)
+        try:
+            return self.race_dataset[target_column][train_test_validation]
+        except KeyError:
+            # Get the target dataset specified by train_test_validation
+            assert train_test_validation in ['train', 'test', 'validation']
+            untransformed = None
+            if train_test_validation == 'train':
+                untransformed = self.train
+            elif train_test_validation == 'test':
+                untransformed = self.test
+            elif train_test_validation == 'validation':
+                untransformed = self.validation
+
+            # Get X, y, mapping series of training and testing set
+            logger.warning('Transforming the dataset...')
+            transformed = transform_dataset(untransformed, target_column=target_column,
+                                            first_race_record=self.first_race)
+
+            # Get matrix transformation
+            logger.warning('Getting matrix representation of the dataset...')
+            for key in transformed.keys():
+                curr_series = transformed[key]
+                if curr_series is not None:
+                    transformed[key] = get_matrix_combination(curr_series, max_length=self.max_length)
+
+            # Assign the variables
+            x = transformed['X']['transformed']
+            y = transformed['y']['transformed']
+            mapped = transformed['mapped']
+            if mapped is not None:
+                mapped = transformed['mapped']['transformed']
+            seq_length = transformed['X']['length']
+
+            # Return as train and test dictionary
+            self.race_dataset[target_column][train_test_validation] = (x, y, mapped, seq_length,)
+            return self.race_dataset[target_column][train_test_validation]
 
 
 def get_train_test_set(target_column, max_length, file_name=None, first_race_record=False):

@@ -9,9 +9,7 @@
 links.txt
 *.py___jb_old___
 
-tensorflow_debug.ipynb
-
-regression_models_debug_2.ipynb
+*debug.ipynb
 
 report/
 log/

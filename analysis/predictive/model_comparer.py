@@ -99,7 +99,7 @@ class ModelComparer(object):
             # Print progress and fit the model
             self.print_progress(y_col_name=y_col_name, model_name=model_name,
                                 train_data=x_train, column_list=self.sorted_cols)
-            model.fit(x_train, y_train)
+            model.fit(x_train.as_matrix(), y_train.as_matrix())
 
             # Add model information for stacking model as well
             if 'meta' in model_name.lower():
@@ -107,10 +107,10 @@ class ModelComparer(object):
                     self.meta_models[model_name] = {}
                     self.meta_predictions[model_name] = {}
                 self.meta_models[model_name][y_col_name] = model
-                self.meta_predictions[model_name][y_col_name] = model.predict_meta_features(x_test)
+                self.meta_predictions[model_name][y_col_name] = model.predict_meta_features(x_test.as_matrix())
 
             # Get prediction of testing date and evaluate
-            y_pred = model.predict(x_test)
+            y_pred = model.predict(x_test.as_matrix())
             if y_col_name != self.run_time_col_name:
                 # Transform accordingly by quotient or difference
                 transformed = self.get_transformed(y_col_name, y_pred, x_test)
