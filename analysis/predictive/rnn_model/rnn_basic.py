@@ -11,6 +11,9 @@ from datetime import datetime
 
 TIME_STEP = 15
 CONFIG = {
+    # Model related
+    'model': 'lstm',
+
     # Dataset related
     'file_name': 'race_record_first_included',
     'target_column': TRAINING_LABEL,
@@ -35,14 +38,20 @@ CONFIG = {
 
 if __name__ == '__main__':
 
+    # LOG AND STORING ==============================================================================================
+
+    model_name = CONFIG['model']
+    model_store_name = 'basic_{}'.format(model_name)
     now = datetime.utcnow().strftime('%Y%m%d%H%M%S')
     root_logdir = 'log'
-    logdir = '{}/run-{}-{}-first-{}/'.format(root_logdir, now, TRAINING_LABEL, CONFIG['first_race_record'])
+    logdir = '{}/run-{}-{}-{}/'.format(root_logdir, now, model_store_name, TRAINING_LABEL)
 
     # DATA PREPARATION =============================================================================================
 
-    train_test_set = get_train_test_set(target_column=CONFIG['target_column'], max_length=CONFIG['max_length'],
-                                        file_name=CONFIG['file_name'], first_race_record=CONFIG['first_race_record'])
+    train_test_set = get_train_test_set(target_column=CONFIG['target_column'],
+                                        max_length=CONFIG['max_length'],
+                                        file_name=CONFIG['file_name'],
+                                        first_race_record=CONFIG['first_race_record'])
     train_X, train_y, train_mapped, train_seq_length = train_test_set['train']
     test_X, test_y, test_mapped, test_seq_length = train_test_set['test']
 
@@ -63,9 +72,17 @@ if __name__ == '__main__':
     y_map = tf.placeholder(tf.float64, [None, n_steps, n_outputs])
     sequence_length = tf.placeholder(tf.int32, [None])
 
-    cell = tf.contrib.rnn.OutputProjectionWrapper(tf.contrib.rnn.BasicRNNCell(num_units=n_neurons,
-                                                                              activation=tf.nn.relu),
-                                                  output_size=n_outputs)
+    # Assign to the specified RNN cell
+    if model_name == 'rnn':
+        basic_cell = tf.contrib.rnn.BasicRNNCell(num_units=n_neurons, activation=tf.nn.relu)
+    elif model_name == 'lstm':
+        basic_cell = tf.contrib.rnn.BasicLSTMCell(num_units=n_neurons)
+    elif model_name == 'lstm_peepholes':
+        basic_cell = tf.contrib.rnn.LSTMCell(num_units=n_neurons, use_peepholes=True)
+    else:
+        raise AssertionError('Model has to be named either as rnn or lstm.')
+
+    cell = tf.contrib.rnn.OutputProjectionWrapper(basic_cell, output_size=n_outputs)
     outputs, states = tf.nn.dynamic_rnn(cell, X, dtype=tf.float64, sequence_length=sequence_length)
 
     # Set loss function and optimizer
@@ -156,6 +173,6 @@ if __name__ == '__main__':
                 end_idx = start_idx + batch_size
 
             # Save model
-            save_path = saver.save(sess, FILE_DIRECTORY + 'model/basic_rnn_%s.ckpt' % TRAINING_LABEL)
+            save_path = saver.save(sess, FILE_DIRECTORY + 'model/%s_%s.ckpt' % (model_store_name, TRAINING_LABEL))
 
-        save_path = saver.save(sess, FILE_DIRECTORY + 'model/basic_rnn_final_%s.ckpt' % TRAINING_LABEL)
+        save_path = saver.save(sess, FILE_DIRECTORY + 'model/%s_final_%s.ckpt' % (model_store_name, TRAINING_LABEL))
