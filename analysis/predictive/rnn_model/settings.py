@@ -6,7 +6,7 @@ FILE_DIRECTORY = '{}\\'.format(os.path.abspath(os.path.join(os.path.dirname(os.p
 DATA_DIRECTORY = '{}{}\\'.format(FILE_DIRECTORY, 'data')
 
 # Feature and labels
-TRAINING_LABEL = 'y_{}'.format('run_time_ma_window_3_quo')
+TRAINING_LABEL = 'y_{}'.format('run_time_ma_window_2_diff')
 PREDICT_FIRST_RACE = False
 
 # Logging
