@@ -12,7 +12,7 @@ from datetime import datetime
 TIME_STEP = 15
 CONFIG = {
     # Model related
-    'model': 'lstm',
+    'model': 'lstm_peepholes',
 
     # Dataset related
     'file_name': 'race_record_first_included',
