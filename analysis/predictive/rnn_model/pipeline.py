@@ -58,7 +58,8 @@ class HorseRaceDataset(object):
             return self.race_dataset[target_column][train_test_validation]
 
 
-def get_train_test_set(target_column, max_length, file_name=None, first_race_record=False):
+def get_train_test_set(target_column, max_length, file_name=None,
+                       first_race_record=False, force_drop_last_run=False):
     # Get training and testing set consisting of X, y, mapping series and sequence length
     logger.warning('Current training label is {}. Fetching training and testing set...'.format(target_column))
     if file_name is not None:
@@ -68,8 +69,10 @@ def get_train_test_set(target_column, max_length, file_name=None, first_race_rec
 
     # Get X, y, mapping series of training and testing set
     logger.warning('Transforming training and testing set...')
-    train_transformed = transform_dataset(train, target_column=target_column, first_race_record=first_race_record)
-    test_transformed = transform_dataset(test, target_column=target_column, first_race_record=first_race_record)
+    train_transformed = transform_dataset(train, target_column=target_column, first_race_record=first_race_record,
+                                          force_drop_last_run=force_drop_last_run)
+    test_transformed = transform_dataset(test, target_column=target_column, first_race_record=first_race_record,
+                                         force_drop_last_run=force_drop_last_run)
 
     # Get matrix transformation
     logger.warning('Getting matrix representation of training and testing set...')
@@ -112,7 +115,7 @@ def load_data(file_name='race_record_first_included'):
     return train, test, validation
 
 
-def transform_dataset(df, target_column='y_run_time_1000', first_race_record=False):
+def transform_dataset(df, target_column='y_run_time_1000', first_race_record=False, force_drop_last_run=False):
     # Transform the dataset into X and y, with some DV feature engineering
     feature_names = list(filter(lambda col_name: 'y_run' in col_name, df.columns))
 
@@ -167,6 +170,8 @@ def transform_dataset(df, target_column='y_run_time_1000', first_race_record=Fal
 
         # Do not remove the dependent column if matched with the default target column
         feature_names.remove('y_run_time_1000')
+        if force_drop_last_run:
+            feature_names.append('last_run_time')
 
     # Drop all irrelevant DV features
     df_transformed.drop(feature_names, axis=1, inplace=True)
