@@ -17,7 +17,7 @@ class HorseRaceDataset(object):
         for column_name in DEPENDENT_COLUMNS_FEATURED:
             self.race_dataset['y_{}'.format(column_name)] = {}
 
-    def get_target_dataframe(self, train_test_validation, target_column):
+    def get_target_dataframe(self, train_test_validation, target_column, force_drop=False):
         # Get the target dataframe by specifying train, test and validation set with the target column
         target_column = 'y_{}'.format(target_column)
         try:
@@ -36,7 +36,7 @@ class HorseRaceDataset(object):
             # Get X, y, mapping series of training and testing set
             logger.warning('Transforming the dataset...')
             transformed = transform_dataset(untransformed, target_column=target_column,
-                                            first_race_record=self.first_race)
+                                            first_race_record=self.first_race, force_drop_last_run=force_drop)
 
             # Get matrix transformation
             logger.warning('Getting matrix representation of the dataset...')
