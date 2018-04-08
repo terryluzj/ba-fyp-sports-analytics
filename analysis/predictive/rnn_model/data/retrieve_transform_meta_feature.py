@@ -1,8 +1,4 @@
-import os
 import pandas as pd
-import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.getcwd()), '..\..')))
-
 from analysis.predictive.settings import PRED_FILE_DIRECTORY, DEPENDENT_COLUMNS_FEATURED, DEPENDENT_COLUMNS
 from analysis.predictive.rnn_model.pipeline import load_data
 from analysis.predictive.rnn_model.settings import DATA_DIRECTORY, logger
@@ -34,6 +30,6 @@ if __name__ == '__main__':
 
         # Store as csv file
         logger.warning('Storing train, test and validation file for {}...'.format(column))
-        new_train.to_csv('{}{}_meta_feature_training.csv'.format(MEGA_FEATURE_DIRECTORY, column))
-        new_test.to_csv('{}{}_meta_feature_testing.csv'.format(MEGA_FEATURE_DIRECTORY, column))
-        new_validation.to_csv('{}{}_meta_feature_validation.csv'.format(MEGA_FEATURE_DIRECTORY, column))
+        new_train.reset_index().to_csv('{}{}_training.csv'.format(MEGA_FEATURE_DIRECTORY, column))
+        new_test.reset_index().to_csv('{}{}_testing.csv'.format(MEGA_FEATURE_DIRECTORY, column))
+        new_validation.reset_index().to_csv('{}{}_validation.csv'.format(MEGA_FEATURE_DIRECTORY, column))

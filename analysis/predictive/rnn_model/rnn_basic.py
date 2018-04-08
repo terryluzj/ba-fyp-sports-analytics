@@ -9,13 +9,15 @@ from datetime import datetime
 
 # CONFIG =============================================================================================
 
+IS_META = True
 TIME_STEP = 15
+
 CONFIG = {
     # Model related
-    'model': 'lstm_peepholes',
+    'model': 'rnn',
 
     # Dataset related
-    'file_name': 'race_record_first_included',
+    'file_name': 'race_record_first_included' if not IS_META else 'meta_feature/{}'.format(TRAINING_LABEL[2:]),
     'target_column': TRAINING_LABEL,
     'first_race_record': PREDICT_FIRST_RACE,
 
@@ -35,13 +37,16 @@ CONFIG = {
     # Logging related
     'print_interval': 10
 }
+if IS_META:
+    CONFIG.update({'n_inputs': 6})
 
 if __name__ == '__main__':
 
     # LOG AND STORING ==============================================================================================
 
     model_name = CONFIG['model']
-    model_store_name = 'basic_{}'.format(model_name)
+    model_store_name = 'basic_{}'.format(model_name) if not IS_META else 'basic_{}_meta'.format(model_name)
+
     now = datetime.utcnow().strftime('%Y%m%d%H%M%S')
     root_logdir = 'log'
     logdir = '{}/run-{}-{}-{}/'.format(root_logdir, now, model_store_name, TRAINING_LABEL)
